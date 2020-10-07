@@ -1,5 +1,7 @@
 # Project Deity
 
+[![Build Status](https://travis-ci.org/Frostflake/project-deity.svg?branch=master)](https://travis-ci.org/Frostflake/project-deity)
+
 ### Introduction
 Welcome to a world where you are not a character. You cannot control anything in this world, but you are worshipped by an individual. As their deity of sorts, it is your responsibility to guide them along their journey -- whether they decide to listen to you or not, or how they interpret your messages, is entirely up to them.
 
