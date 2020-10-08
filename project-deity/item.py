@@ -39,9 +39,11 @@ class Item(object):
     # This method is used for a generic observe description.
     def __str__(self):
         if self.modifier == "":
-            return "You are looking at a %s. It has a market value of %s gold, \
+            return "You are looking at a %s. \
+                    It has a market value of %s gold, \
                     and weighs %s." % (self.name, self.value, self.weight)
         else:
-            return "You are looking at a %s %s. It has a market value of %s gold, and \
+            return "You are looking at a %s %s. \
+                    It has a market value of %s gold, and \
                     weighs %s." % (self.modifier, self.name,
                                    self.value, self.weight)

@@ -43,13 +43,16 @@ def run_tests():
     print("8. Get item weight.")
     assert test_item1.weight == 10
     assert test_item2.weight == 15
-    print("9. Get item description.")
-    assert str(test_item1) == "You are looking at a Orb of Readiness. \
-                               It has a market value of 100 gold, \
-                               and weighs 10."
-    assert str(test_item2) == "You are looking at a Bright Orb of Readiness. \
-                               It has a market value of 250 gold, \
-                               and weighs 15."
+    print("9. Get item attributes.")
+    assert test_item1.attributes["attack"] == 1
+    assert len(test_item2.attributes) == 0
+    print("10. Get item description.")
+    assert "Orb of Readiness" in str(test_item1)
+    assert "100 gold" in str(test_item1)
+    assert "weighs 10" in str(test_item1)
+    assert "Bright Orb of Readiness" in str(test_item2)
+    assert "250 gold" in str(test_item2)
+    assert "weighs 15" in str(test_item2)
     print("Item class passed all tests!")
 
 
