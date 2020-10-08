@@ -14,36 +14,44 @@
 
 from item import Item
 
+
 def run_tests():
-	print("Testing Item class...")
-	print("1. Create item.")
-	test_item1 = Item("Orb of Readiness", "Weapon", "orb.jpg", 100, 10, attributes = {"attack": 1})
-	test_item2 = Item("Orb of Readiness", "Shield", "bright_orb.jpg", 250, 15, rarity = 1, modifier = "Bright")
-	print("2. Get item name.")
-	assert test_item1.name == "Orb of Readiness"
-	assert test_item2.name == "Orb of Readiness"
-	print("3. Get item class type.")
-	assert test_item1.class_type == "Weapon"
-	assert test_item2.class_type == "Shield"
-	print("4. Get item image.")
-	assert test_item1.get_image() == "./images/items/orb.jpg"
-	assert test_item2.get_image() == "./images/items/bright_orb.jpg"
-	print("5. Get item value.")
-	assert test_item1.value == 100
-	assert test_item2.value == 250
-	print("6. Get item rarity.")
-	assert test_item1.rarity == 0
-	assert test_item2.rarity == 1
-	print("7. Get item modifier.")
-	assert test_item1.modifier == ""
-	assert test_item2.modifier == "Bright"
-	print("8. Get item weight.")
-	assert test_item1.weight == 10
-	assert test_item2.weight == 15
-	print("9. Get item description.")
-	assert str(test_item1) == "You are looking at a Orb of Readiness. It has a market value of 100 gold, and weighs 10."
-	assert str(test_item2) == "You are looking at a Bright Orb of Readiness. It has a market value of 250 gold, and weighs 15."
-	print("Item class passed all tests!")
+    print("Testing Item class...")
+    print("1. Create item.")
+    test_item1 = Item("Orb of Readiness", "Weapon", "orb.jpg",
+                      100, 10, attributes={"attack": 1})
+    test_item2 = Item("Orb of Readiness", "Shield", "bright_orb.jpg",
+                      250, 15, rarity=1, modifier="Bright")
+    print("2. Get item name.")
+    assert test_item1.name == "Orb of Readiness"
+    assert test_item2.name == "Orb of Readiness"
+    print("3. Get item class type.")
+    assert test_item1.class_type == "Weapon"
+    assert test_item2.class_type == "Shield"
+    print("4. Get item image.")
+    assert test_item1.get_image() == "./images/items/orb.jpg"
+    assert test_item2.get_image() == "./images/items/bright_orb.jpg"
+    print("5. Get item value.")
+    assert test_item1.value == 100
+    assert test_item2.value == 250
+    print("6. Get item rarity.")
+    assert test_item1.rarity == 0
+    assert test_item2.rarity == 1
+    print("7. Get item modifier.")
+    assert test_item1.modifier == ""
+    assert test_item2.modifier == "Bright"
+    print("8. Get item weight.")
+    assert test_item1.weight == 10
+    assert test_item2.weight == 15
+    print("9. Get item description.")
+    assert str(test_item1) == "You are looking at a Orb of Readiness. \
+                               It has a market value of 100 gold, \
+                               and weighs 10."
+    assert str(test_item2) == "You are looking at a Bright Orb of Readiness. \
+                               It has a market value of 250 gold, \
+                               and weighs 15."
+    print("Item class passed all tests!")
+
 
 if __name__ == '__main__':
-	run_tests()
+    run_tests()
