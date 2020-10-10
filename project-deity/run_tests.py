@@ -15,6 +15,7 @@
 from item import Item
 from account import Account
 
+
 def run_item_tests():
     print("Testing Item class...")
     print("1. Create item.")
@@ -55,11 +56,12 @@ def run_item_tests():
     assert "weighs 15" in str(test_item2)
     print("Item class passed all tests!")
 
+
 def run_account_tests():
     print("Testing Account class...")
     print("1. Create account.")
     test_account1 = Account(1, "Tester")
-    test_account2 = Account(2, "Testing", bridge_info={'discord':12315436})
+    test_account2 = Account(2, "Testing", bridge_info={'discord': 12315436})
     print("2. Get account ID.")
     assert test_account1.id == 1
     assert test_account2.id == 2
@@ -74,9 +76,11 @@ def run_account_tests():
     assert test_account2.discord_enabled()
     print("Account class passed all tests!")
 
+
 def run_tests():
     run_item_tests()
     run_account_tests()
+
 
 if __name__ == '__main__':
     run_tests()
