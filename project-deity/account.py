@@ -21,7 +21,10 @@ class Account(object):
         # A list of character IDs registered on this account
         self.characters = []
         # Optional: Information pertaining to bridged services
-        self.bridge_info = {}
+        self.bridge_info = bridge_info
 
     def can_create_character(self):
         return len(self.characters) < 3
+
+    def discord_enabled(self):
+        return 'discord' in self.bridge_info.keys()
