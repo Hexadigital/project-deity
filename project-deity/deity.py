@@ -12,7 +12,7 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-class Account(object):
+class Deity(object):
     def __init__(self, id_num, name, bridge_info={}):
         # Internal ID
         self.id = id_num

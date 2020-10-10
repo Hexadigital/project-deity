@@ -13,7 +13,7 @@
 # included in all copies or substantial portions of the Software.
 
 from item import Item
-from account import Account
+from deity import Deity
 
 
 def run_item_tests():
@@ -57,29 +57,29 @@ def run_item_tests():
     print("Item class passed all tests!")
 
 
-def run_account_tests():
-    print("Testing Account class...")
-    print("1. Create account.")
-    test_account1 = Account(1, "Tester")
-    test_account2 = Account(2, "Testing", bridge_info={'discord': 12315436})
-    print("2. Get account ID.")
-    assert test_account1.id == 1
-    assert test_account2.id == 2
-    print("3. Get account name.")
-    assert test_account1.name == "Tester"
-    assert test_account2.name == "Testing"
+def run_deity_tests():
+    print("Testing Deity class...")
+    print("1. Create deity.")
+    test_deity1 = Deity(1, "Tester")
+    test_deity2 = Deity(2, "Testing", bridge_info={'discord': 12315436})
+    print("2. Get deity ID.")
+    assert test_deity1.id == 1
+    assert test_deity2.id == 2
+    print("3. Get deity name.")
+    assert test_deity1.name == "Tester"
+    assert test_deity2.name == "Testing"
     print("4. Check if character slots are available.")
-    assert test_account1.can_create_character()
-    assert test_account2.can_create_character()
+    assert test_deity1.can_create_character()
+    assert test_deity2.can_create_character()
     print("5. Check if Discord bridge is activated.")
-    assert not test_account1.discord_enabled()
-    assert test_account2.discord_enabled()
-    print("Account class passed all tests!")
+    assert not test_deity1.discord_enabled()
+    assert test_deity2.discord_enabled()
+    print("Deity class passed all tests!")
 
 
 def run_tests():
     run_item_tests()
-    run_account_tests()
+    run_deity_tests()
 
 
 if __name__ == '__main__':
