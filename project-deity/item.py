@@ -14,7 +14,7 @@
 
 class Item(object):
     def __init__(self, name, class_type, image, value, weight,
-                 rarity=0, modifier="", attributes={}):
+                 rarity=0, modifier=None, attributes={}):
         self.name = name
         # The class type is used for determining the way the item is handled.
         # Examples: Weapon, Potion, Chest, etc.
@@ -38,7 +38,7 @@ class Item(object):
 
     # This method is used for a generic observe description.
     def __str__(self):
-        if self.modifier == "":
+        if not self.modifier:
             return "You are looking at a %s. \
                     It has a market value of %s gold, \
                     and weighs %s." % (self.name, self.value, self.weight)

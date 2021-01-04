@@ -14,6 +14,7 @@
 
 from item import Item
 from deity import Deity
+from inventory import Inventory
 
 
 def run_item_tests():
@@ -39,7 +40,7 @@ def run_item_tests():
     assert test_item1.rarity == 0
     assert test_item2.rarity == 1
     print("7. Get item modifier.")
-    assert test_item1.modifier == ""
+    assert test_item1.modifier is None
     assert test_item2.modifier == "Bright"
     print("8. Get item weight.")
     assert test_item1.weight == 10
@@ -77,9 +78,47 @@ def run_deity_tests():
     print("Deity class passed all tests!")
 
 
+def run_inventory_tests():
+    print("Testing Inventory class...")
+    print("1. Create inventory.")
+    test_inventory1 = Inventory()
+    test_inventory2 = Inventory(2, 2)
+    test_inventory3 = Inventory(1, 1)
+    print("2. Get inventory dimensions.")
+    assert test_inventory1.height == 5
+    assert test_inventory1.width == 5
+    assert test_inventory2.height == 2
+    assert test_inventory2.width == 2
+    assert test_inventory3.height == 1
+    assert test_inventory3.width == 1
+    print("3. Get inventory capacity.")
+    assert test_inventory1.capacity == 25
+    assert test_inventory2.capacity == 4
+    assert test_inventory3.capacity == 1
+    print("4. Add items to inventory.")
+    test_item1 = Item("Orb of Readiness", "Weapon", "orb.jpg",
+                      100, 10, attributes={"attack": 1})
+    test_item2 = Item("Orb of Readiness", "Shield", "bright_orb.jpg",
+                      250, 15, rarity=1, modifier="Bright")
+    assert test_inventory2.add_item(test_item1)
+    assert test_inventory2.add_item(test_item2)
+    assert test_inventory3.add_item(test_item1)
+    assert not test_inventory3.add_item(test_item1)
+    print("5. Check if inventory is full.")
+    assert not test_inventory1.is_full()
+    assert not test_inventory2.is_full()
+    assert test_inventory3.is_full()
+    print("6. Get inventory as string.")
+    assert str(test_inventory1) == ""
+    assert str(test_inventory2) == "Orb of Readiness, Bright Orb of Readiness"
+    assert str(test_inventory3) == "Orb of Readiness"
+    print("Inventory class passed all tests!")
+
+
 def run_tests():
     run_item_tests()
     run_deity_tests()
+    run_inventory_tests()
 
 
 if __name__ == '__main__':
