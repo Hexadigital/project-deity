@@ -19,3 +19,7 @@ While some dieties may be happy to help along your champion or exchange items wi
 
 ### How do I play or use this?
 At the moment, this is more of a template for an engine than anything. Please hold tight.
+
+### Inspirations
+This project was inspired by IdleRPG, Progress Quest, Old School RuneScape, Mabinogi, and a few other MMOs.
+If you like this, you might like some of those.
