@@ -1,0 +1,1 @@
+INSERT INTO `db_versioning` (`version`) VALUES ('1');
