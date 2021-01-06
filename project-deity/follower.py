@@ -35,12 +35,12 @@ class Follower(object):
         self.stat_points = 0
         self.reputation = 0
         self.devotion = 0
-        self.maxhp = 0  # TODO
-        # Current health
-        self.hp = 0  # TODO
-        self.maxmp = 0  # TODO
-        # Current mana
-        self.mp = 0  # TODO
+        # Handle health
+        self.maxhp = self.update_max_health()
+        self.hp = self.maxhp
+        # Handle mana
+        self.maxmp = self.update_max_mana()
+        self.mp = self.maxmp
         self.equipment = None  # TODO
         self.inventory = None  # TODO
 
@@ -55,6 +55,38 @@ class Follower(object):
     # Adds the given amount of currency.
     def add_income(self, amount):
         self.monies += amount
+
+    # Resets the max health based off new level/stats.
+    def update_max_health(self):
+        minimum_hp = {
+            "Alchemist": 20,
+            "Brawler": 30,
+            "Craftsman": 15,
+            "Elementalist": 20,
+            "Merchant": 10,
+            "Necromancer": 15,
+            "Ranger": 25,
+            "Rogue": 20,
+            "Soldier": 35
+        }
+        self.maxhp = int((((self.level / 2) + self.endurance) * 5)
+                         + minimum_hp[self.class_name])
+
+    # Resets the max mana based off new level/stats.
+    def update_max_mana(self):
+        minimum_mp = {
+            "Alchemist": 20,
+            "Brawler": 0,
+            "Craftsman": 5,
+            "Elementalist": 30,
+            "Merchant": 5,
+            "Necromancer": 35,
+            "Ranger": 10,
+            "Rogue": 10,
+            "Soldier": 15
+        }
+        self.maxmp = int((((self.level / 2) + self.intelligence) * 3)
+                         + minimum_mp[self.class_name])
 
 
 def get_starting_stats(class_name):
