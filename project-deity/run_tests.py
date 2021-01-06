@@ -15,6 +15,7 @@
 from item import Item
 from deity import Deity
 from inventory import Inventory
+from equipment import Equipment
 
 
 def run_item_tests():
@@ -55,7 +56,7 @@ def run_item_tests():
     assert "Bright Orb of Readiness" in str(test_item2)
     assert "250 gold" in str(test_item2)
     assert "weighs 15" in str(test_item2)
-    print("Item class passed all tests!")
+    print("Item class passed all tests!\n")
 
 
 def run_deity_tests():
@@ -75,7 +76,7 @@ def run_deity_tests():
     print("5. Check if Discord bridge is activated.")
     assert not test_deity1.discord_enabled()
     assert test_deity2.discord_enabled()
-    print("Deity class passed all tests!")
+    print("Deity class passed all tests!\n")
 
 
 def run_inventory_tests():
@@ -112,13 +113,33 @@ def run_inventory_tests():
     assert str(test_inventory1) == ""
     assert str(test_inventory2) == "Orb of Readiness, Bright Orb of Readiness"
     assert str(test_inventory3) == "Orb of Readiness"
-    print("Inventory class passed all tests!")
+    print("Inventory class passed all tests!\n")
+
+
+def run_equipment_tests():
+    print("Testing Equipment class...")
+    print("1. Create equipment.")
+    test_equip1 = Equipment()
+    test_equip2 = Equipment()
+    print("2. Equip items.")
+    test_item1 = Item("Orb of Readiness", "Weapon", "orb.jpg",
+                      100, 10, attributes={"attack": 1})
+    test_item2 = Item("Orb of Readiness", "Shield", "bright_orb.jpg",
+                      250, 15, rarity=1, modifier="Bright")
+    assert test_equip1.equip_item(test_item1) is None
+    assert test_equip1.equip_item(test_item1).weight == 10
+    assert test_equip1.equip_item(test_item2) is None
+    print("3. Get equipment as string.")
+    assert str(test_equip1) == "Orb of Readiness, Bright Orb of Readiness"
+    assert str(test_equip2) == ""
+    print("Equipment class passed all tests!\n")
 
 
 def run_tests():
     run_item_tests()
     run_deity_tests()
     run_inventory_tests()
+    run_equipment_tests()
 
 
 if __name__ == '__main__':
