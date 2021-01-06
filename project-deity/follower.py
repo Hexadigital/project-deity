@@ -23,17 +23,23 @@ class Follower(object):
         self.level = 1
         self.exp = 0
         self.monies = 100
-        self.strength = 0  # TODO
-        self.endurance = 0  # TODO
-        self.intelligence = 0  # TODO
-        self.agility = 0  # TODO
-        self.willpower = 0  # TODO
+        # Assign starting stats
+        starting_stats = get_starting_stats(class_name)
+        self.strength = starting_stats[0]
+        self.endurance = starting_stats[1]
+        self.intelligence = starting_stats[2]
+        self.agility = starting_stats[3]
+        self.willpower = starting_stats[4]
         self.luck = 3
+        # Stat points to allocate
+        self.stat_points = 0
         self.reputation = 0
         self.devotion = 0
         self.maxhp = 0  # TODO
+        # Current health
         self.hp = 0  # TODO
         self.maxmp = 0  # TODO
+        # Current mana
         self.mp = 0  # TODO
         self.equipment = None  # TODO
         self.inventory = None  # TODO
@@ -41,6 +47,26 @@ class Follower(object):
     def try_level_up(self):
         return None  # TODO
 
-    def gain_exp(self, exp):
-        self.exp += exp
+    # Adds the given amount of experience and tries to level up.
+    def add_exp(self, amount):
+        self.exp += amount
         return self.try_level_up()
+
+    # Adds the given amount of currency.
+    def add_income(self, amount):
+        self.monies += amount
+
+
+def get_starting_stats(class_name):
+    starting_stats = {
+        "Alchemist": [0, 1, 4, 3, 3],
+        "Brawler": [3, 4, 1, 2, 1],
+        "Craftsman": [2, 2, 3, 2, 2],
+        "Elementalist": [1, 2, 3, 2, 3],
+        "Merchant": [1, 1, 2, 1, 1],
+        "Necromancer": [1, 1, 4, 2, 3],
+        "Ranger": [2, 1, 3, 4, 1],
+        "Rogue": [1, 1, 2, 4, 3],
+        "Soldier": [4, 3, 1, 1, 2]
+    }
+    return starting_stats[class_name]
