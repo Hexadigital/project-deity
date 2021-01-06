@@ -52,6 +52,11 @@ class Follower(object):
             self.exp -= self.exp_req
             self.level += 1
             self.update_exp_requirement()
+            # Update stats and heal
+            self.update_max_health()
+            self.update_max_mana()
+            self.hp = self.maxhp
+            self.mp = self.maxmp
             return self.level
         else:
             return False
