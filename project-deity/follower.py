@@ -22,6 +22,7 @@ class Follower(object):
         self.deity = deity
         self.level = 1
         self.exp = 0
+        self.update_exp_requirement()
         self.monies = 100
         # Assign starting stats
         starting_stats = get_starting_stats(class_name)
@@ -44,8 +45,25 @@ class Follower(object):
         self.equipment = None  # TODO
         self.inventory = None  # TODO
 
+    # Returns False if the player cannot level up,
+    # otherwise returns their new level.
     def try_level_up(self):
-        return None  # TODO
+        if self.exp >= self.exp_req:
+            self.exp -= self.exp_req
+            self.level += 1
+            self.update_exp_requirement()
+            return self.level
+        else:
+            return False
+
+    # Calculates the required experience for the next level.
+    # This formula was used in my first MMO, Restructured.
+    # Might need to adjust it later.
+    def update_exp_requirement(self):
+        exp_formula1 = (self.level + 1) ^ 3
+        exp_formula2 = 6 * (self.level + 1) ^ 2
+        exp_formula3 = 17 * (self.level + 1) - 12
+        self.exp_req = (50 / 3) * (exp_formula1 - exp_formula2 + exp_formula3)
 
     # Adds the given amount of experience and tries to level up.
     def add_exp(self, amount):
