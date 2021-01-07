@@ -29,7 +29,7 @@ async def create_deity(cursor, name, follower, discord=None):
 # Given a Discord ID, find the associated deity's ID.
 # Returns None if nothing is found.
 async def get_deity_by_discord(cursor, discord):
-    cursor.execute('''SELECT 1 FROM deities
+    cursor.execute('''SELECT * FROM deities
                       WHERE discord = %s''',
                    (discord, ))
     results = cursor.fetchone()
