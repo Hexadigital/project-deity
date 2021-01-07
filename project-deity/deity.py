@@ -12,19 +12,28 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-class Deity(object):
-    def __init__(self, id_num, name, bridge_info={}):
-        # Internal ID
-        self.id = id_num
-        # The name of this deity
-        self.name = name
-        # A list of character IDs registered on this account
-        self.characters = []
-        # Optional: Information pertaining to bridged services
-        self.bridge_info = bridge_info
+# Create a deity and return success status
+async def create_deity(cursor, name, follower, discord=None):
+    # Insert row for deity
+    cursor.execute('''INSERT INTO deities (name)
+                       VALUES (%s)''', (name, ))
+    # Add Discord ID if we have one
+    if discord is not None:
+        row_id = cursor.fetchone()[0]
+        cursor.execute('''UPDATE deities
+                          SET discord = %s WHERE id = %s''',
+                       (discord, row_id))
+    return True
 
-    def can_create_character(self):
-        return len(self.characters) < 3
 
-    def discord_enabled(self):
-        return 'discord' in self.bridge_info.keys()
+# Given a Discord ID, find the associated deity's ID.
+# Returns None if nothing is found.
+async def get_deity_by_discord(cursor, discord):
+    cursor.execute('''SELECT 1 FROM deities
+                      WHERE discord = %s''',
+                   (discord, ))
+    results = cursor.fetchone()
+    if len(results) == 0:
+        return None
+    else:
+        return results[0]
