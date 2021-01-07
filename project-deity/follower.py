@@ -12,116 +12,83 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-class Follower(object):
-    def __init__(self, id_num, name, class_name, gender, deity):
-        # Internal ID
-        self.id = id_num
-        self.name = name
-        self.class_name = class_name
-        self.gender = gender
-        self.deity = deity
-        self.level = 1
-        self.exp = 0
+'''# Returns False if the player cannot level up,
+# otherwise returns their new level.
+def try_level_up(self):
+    if self.exp >= self.exp_req:
+        self.exp -= self.exp_req
+        self.level += 1
         self.update_exp_requirement()
-        self.monies = 100
-        # Assign starting stats
-        starting_stats = get_starting_stats(class_name)
-        self.strength = starting_stats[0]
-        self.endurance = starting_stats[1]
-        self.intelligence = starting_stats[2]
-        self.agility = starting_stats[3]
-        self.willpower = starting_stats[4]
-        self.luck = 3
-        # Stat points to allocate
-        self.stat_points = 0
-        self.reputation = 0
-        self.devotion = 0
-        # Handle health
-        self.maxhp = self.update_max_health()
+        # Update stats and heal
+        self.update_max_health()
+        self.update_max_mana()
         self.hp = self.maxhp
-        # Handle mana
-        self.maxmp = self.update_max_mana()
         self.mp = self.maxmp
-        self.equipment = None  # TODO
-        self.inventory = None  # TODO
+        return self.level
+    else:
+        return False
 
-    # Returns False if the player cannot level up,
-    # otherwise returns their new level.
-    def try_level_up(self):
-        if self.exp >= self.exp_req:
-            self.exp -= self.exp_req
-            self.level += 1
-            self.update_exp_requirement()
-            # Update stats and heal
-            self.update_max_health()
-            self.update_max_mana()
-            self.hp = self.maxhp
-            self.mp = self.maxmp
-            return self.level
-        else:
-            return False
+# Calculates the required experience for the next level.
+# This formula was used in my first MMO, Restructured.
+# Might need to adjust it later.
+def update_exp_requirement(self):
+    exp_formula1 = (self.level + 1) ^ 3
+    exp_formula2 = 6 * (self.level + 1) ^ 2
+    exp_formula3 = 17 * (self.level + 1) - 12
+    self.exp_req = (50 / 3) * (exp_formula1 - exp_formula2 + exp_formula3)
 
-    # Calculates the required experience for the next level.
-    # This formula was used in my first MMO, Restructured.
-    # Might need to adjust it later.
-    def update_exp_requirement(self):
-        exp_formula1 = (self.level + 1) ^ 3
-        exp_formula2 = 6 * (self.level + 1) ^ 2
-        exp_formula3 = 17 * (self.level + 1) - 12
-        self.exp_req = (50 / 3) * (exp_formula1 - exp_formula2 + exp_formula3)
+# Adds the given amount of experience and tries to level up.
+def add_exp(self, amount):
+    self.exp += amount
+    return self.try_level_up()
 
-    # Adds the given amount of experience and tries to level up.
-    def add_exp(self, amount):
-        self.exp += amount
-        return self.try_level_up()
-
-    # Adds the given amount of currency.
-    def add_income(self, amount):
-        self.monies += amount
-
-    # Resets the max health based off new level/stats.
-    def update_max_health(self):
-        minimum_hp = {
-            "Alchemist": 20,
-            "Brawler": 30,
-            "Craftsman": 15,
-            "Elementalist": 20,
-            "Merchant": 10,
-            "Necromancer": 15,
-            "Ranger": 25,
-            "Rogue": 20,
-            "Soldier": 35
-        }
-        self.maxhp = int((((self.level / 2) + self.endurance) * 5)
-                         + minimum_hp[self.class_name])
-
-    # Resets the max mana based off new level/stats.
-    def update_max_mana(self):
-        minimum_mp = {
-            "Alchemist": 20,
-            "Brawler": 0,
-            "Craftsman": 5,
-            "Elementalist": 30,
-            "Merchant": 5,
-            "Necromancer": 35,
-            "Ranger": 10,
-            "Rogue": 10,
-            "Soldier": 15
-        }
-        self.maxmp = int((((self.level / 2) + self.intelligence) * 3)
-                         + minimum_mp[self.class_name])
+# Adds the given amount of currency.
+def add_income(self, amount):
+    self.monies += amount'''
 
 
-def get_starting_stats(class_name):
-    starting_stats = {
-        "Alchemist": [0, 1, 4, 3, 3],
-        "Brawler": [3, 4, 1, 2, 1],
-        "Craftsman": [2, 2, 3, 2, 2],
-        "Elementalist": [1, 2, 3, 2, 3],
-        "Merchant": [1, 1, 2, 1, 1],
-        "Necromancer": [1, 1, 4, 2, 3],
-        "Ranger": [2, 1, 3, 4, 1],
-        "Rogue": [1, 1, 2, 4, 3],
-        "Soldier": [4, 3, 1, 1, 2]
-    }
-    return starting_stats[class_name]
+# Resets the max health based off new level/stats.
+async def update_max_health(cursor, follower_id):
+    cursor.execute('''SELECT class_id, level, endurance
+                      FROM followers
+                      WHERE id = %s;''', (follower_id, ))
+    follower_info = cursor.fetchone()
+    cursor.execute('''SELECT hp_bonus
+                      FROM follower_classes
+                      WHERE id = %s;''', (follower_info[0]))
+    hp_bonus = cursor.fetchone()[0]
+    new_max_health = int((((follower_info[1] / 2) + follower_info[2]) * 3)
+                         + hp_bonus)
+    cursor.execute('''UPDATE followers
+                      SET hp = %s, max_hp = %s
+                      WHERE id = %s''',
+                   (new_max_health, new_max_health, follower_id))
+    return new_max_health
+
+
+# Resets the max mana based off new level/stats.
+async def update_max_mana(cursor, follower_id):
+    cursor.execute('''SELECT class_id, level, intelligence
+                      FROM followers
+                      WHERE id = %s;''', (follower_id, ))
+    follower_info = cursor.fetchone()
+    cursor.execute('''SELECT mp_bonus
+                      FROM follower_classes
+                      WHERE id = %s;''', (follower_info[0]))
+    mp_bonus = cursor.fetchone()[0]
+    new_max_mana = int((((follower_info[1] / 2) + follower_info[2]) * 3)
+                       + mp_bonus)
+    cursor.execute('''UPDATE followers
+                      SET mp = %s, max_mp = %s
+                      WHERE id = %s''',
+                   (new_max_mana, new_max_mana, follower_id))
+    return new_max_mana
+
+
+# Returns the five starting stat values
+async def get_starting_stats(cursor, class_name):
+    cursor.execute('''SELECT strength, endurance, intelligence, agility, willpower
+                   FROM follower_classes
+                   WHERE class_name = %s;''', (class_name, ))
+    results = cursor.fetchone()
+    return results
