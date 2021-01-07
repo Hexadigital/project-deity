@@ -93,10 +93,10 @@ CREATE TABLE IF NOT EXISTS "project-deity".followers
     stat_points integer NOT NULL DEFAULT 0,
     reputation integer NOT NULL DEFAULT 0,
     devotion integer NOT NULL DEFAULT 0,
-    hp integer NOT NULL,
-    max_hp integer NOT NULL,
-    mp integer NOT NULL,
-    max_mp integer NOT NULL,
+    hp integer NOT NULL DEFAULT 0,
+    max_hp integer NOT NULL DEFAULT 0,
+    mp integer NOT NULL DEFAULT 0,
+    max_mp integer NOT NULL DEFAULT 0,
     PRIMARY KEY (id)
 );
 COMMENT ON TABLE "project-deity".followers
