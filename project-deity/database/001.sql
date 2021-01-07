@@ -120,3 +120,24 @@ CREATE TABLE IF NOT EXISTS "project-deity".follower_equipment
 
 COMMENT ON TABLE "project-deity".follower_equipment
     IS 'This table holds player/follower equipment.';
+
+-- Create follower/character class table
+CREATE TABLE "project-deity".follower_classes
+(
+    id smallserial,
+    class_name text NOT NULL,
+    strength smallint NOT NULL,
+    endurance smallint NOT NULL,
+    intelligence smallint NOT NULL,
+    agility smallint NOT NULL,
+    willpower smallint NOT NULL,
+    hp_bonus smallint NOT NULL,
+    mp_bonus smallint NOT NULL,
+    PRIMARY KEY (id)
+);
+
+ALTER TABLE "project-deity".follower_classes
+    OWNER to scuttlest;
+
+COMMENT ON TABLE "project-deity".follower_classes
+    IS 'This table contains information relating to character/follower classes.';
