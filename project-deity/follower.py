@@ -156,4 +156,8 @@ async def create_follower(cursor, name, class_name, deity_id):
     follower_id = cursor.fetchone()["id"]
     await update_max_health(cursor, follower_id)
     await update_max_mana(cursor, follower_id)
+    # Create empty equipment record
+    cursor.execute('''INSERT INTO "project-deity".follower_equipment
+                   (follower_id) VALUES (%s);''',
+                   (follower_id, ))
     return follower_id

@@ -19,6 +19,7 @@ import psycopg2
 import psycopg2.extras
 
 import deity
+import equipment
 import follower
 import inventory
 import item
@@ -179,6 +180,20 @@ async def test_inventory(cursor):
     print("All tests passed!\n")
 
 
+async def test_equipment(cursor):
+    print("Testing equipment.py...")
+    print("1. Equip item to empty slot.")
+    assert await equipment.equip_item(cursor, 1, 1) is True
+    print("2. Equip item to filled slot.")
+    # Replace (item ID 1) with (slot 2, item ID 1)
+    assert await equipment.equip_item(cursor, 1, 2) == 1
+    # Replace (item ID 1) with (slot 7, item ID 3)
+    assert await equipment.equip_item(cursor, 1, 7) == 1
+    # Replace (item ID 3) with (slot 7, item ID 1)
+    assert await equipment.equip_item(cursor, 1, 7) == 3
+    print("All tests passed!\n")
+
+
 async def run_tests(conn):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     # Run individual tests
@@ -186,6 +201,7 @@ async def run_tests(conn):
     await test_follower(cursor)
     await test_item(cursor)
     await test_inventory(cursor)
+    await test_equipment(cursor)
     cursor.close()
     conn.close()
 

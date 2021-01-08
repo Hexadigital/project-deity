@@ -71,4 +71,4 @@ async def equip_item(cursor, follower_id, slot_num):
     # Return status
     if old_item is None:
         return True
-    return item_id
+    return old_item
