@@ -16,7 +16,7 @@
 # or returns None if no free slots exist.
 async def find_free_slot(cursor, follower_id):
     cursor.execute('''SELECT inv_width, inv_height
-                      FROM "project-deity".deities
+                      FROM "project-deity".followers
                       WHERE id = %s;''',
                    (follower_id, ))
     results = cursor.fetchone()
@@ -37,12 +37,23 @@ async def find_free_slot(cursor, follower_id):
 
 # Returns True if item is added,
 # returns False if inventory is full.
-async def add_item(cursor, follower_id, item_id, unique=False):
-    item_slot = find_free_slot(cursor, follower_id)
+async def add_item(cursor, follower_id, item_id):
+    item_slot = await find_free_slot(cursor, follower_id)
     if item_slot is None:
         return False
     cursor.execute('''INSERT INTO "project-deity".follower_inventories
                       (follower_id, slot_num, item_id)
                       VALUES (%s, %s, %s);''',
                    (follower_id, item_slot, item_id))
+    return True
+
+
+# Deletes the item in an inventory slot,
+# returns deletion status.
+async def delete_item(cursor, follower_id, item_id):
+    cursor.execute('''DELETE FROM "project-deity".follower_inventories
+                      WHERE follower_id = %s
+                      AND slot_num = %s;''',
+                   (follower_id, item_id))
+    # TODO: Return False if slot was already empty
     return True

@@ -50,7 +50,7 @@ async def get_text_description(cursor, item_id):
     article = "a"
     if first_char in ["a", "e", "i", "o", "u"]:
         article = "an"
-    
+
     if item["modifier"] is not None:
         description = "You are looking at %s %s %s. "
         description += "It has a market value of %s gold, and weighs %s."

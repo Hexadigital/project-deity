@@ -95,6 +95,8 @@ CREATE TABLE IF NOT EXISTS "project-deity".followers
     max_hp integer NOT NULL DEFAULT 0,
     mp integer NOT NULL DEFAULT 0,
     max_mp integer NOT NULL DEFAULT 0,
+    inv_width smallint NOT NULL DEFAULT 5,
+    inv_height smallint NOT NULL DEFAULT 5,
     PRIMARY KEY (id)
 );
 COMMENT ON TABLE "project-deity".followers
@@ -131,6 +133,8 @@ CREATE TABLE "project-deity".follower_classes
     willpower smallint NOT NULL,
     hp_bonus smallint NOT NULL,
     mp_bonus smallint NOT NULL,
+    inv_width smallint NOT NULL DEFAULT 5,
+    inv_height smallint NOT NULL DEFAULT 5,
     PRIMARY KEY (id)
 );
 COMMENT ON TABLE "project-deity".follower_classes

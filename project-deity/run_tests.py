@@ -20,6 +20,7 @@ import psycopg2.extras
 
 import deity
 import follower
+import inventory
 import item
 
 
@@ -157,12 +158,34 @@ async def test_item(cursor):
     print("All tests passed!\n")
 
 
+async def test_inventory(cursor):
+    print("Testing inventory.py...")
+    print("1. Add items to inventory.")
+    assert await inventory.add_item(cursor, 1, 1) is True
+    assert await inventory.add_item(cursor, 1, 1) is True
+    assert await inventory.add_item(cursor, 1, 1) is True
+    print("2. Attempt to add item to full inventory.")
+    # Fill up inventory
+    for i in range(0, 21):
+        assert await inventory.add_item(cursor, 1, 1) is True
+    assert await inventory.add_item(cursor, 1, 1) is False
+    print("3. Delete items from inventory.")
+    await inventory.delete_item(cursor, 1, 13)
+    await inventory.delete_item(cursor, 1, 7)
+    print("4. Add items to inventory with gaps.")
+    assert await inventory.add_item(cursor, 1, 3) is True
+    assert await inventory.add_item(cursor, 1, 1) is True
+    assert await inventory.add_item(cursor, 1, 1) is False
+    print("All tests passed!\n")
+
+
 async def run_tests(conn):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     # Run individual tests
     await test_deity(cursor)
     await test_follower(cursor)
     await test_item(cursor)
+    await test_inventory(cursor)
     cursor.close()
     conn.close()
 
