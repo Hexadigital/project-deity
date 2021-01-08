@@ -20,6 +20,7 @@ import psycopg2.extras
 
 import deity
 import follower
+import item
 
 
 async def create_test_schema(cursor):
@@ -113,11 +114,55 @@ async def test_follower(cursor):
     print("All tests passed!\n")
 
 
+async def test_item(cursor):
+    print("Testing item.py...")
+    print("1. Populating items table with sample data.")
+    cursor.execute('''INSERT INTO "project-deity".items
+                      (name, class_type, image, value, weight, rarity,
+                      modifier, json_attributes)
+                      VALUES ('Orb of Illusion', 'Weapon', 'orb.jpg',
+                      10, 10, 0, null, null)
+                      RETURNING id;''')
+    cursor.execute('''INSERT INTO "project-deity".items
+                      (name, class_type, image, value, weight, rarity,
+                      modifier, json_attributes)
+                      VALUES ('Orb of Illusion', 'Weapon', 'orb.jpg',
+                      100, 10, 1, 'Bright', null)
+                      RETURNING id;''')
+    print("2. Creating item instances.")
+    item1 = await item.create_item_instance(cursor, 1)
+    item2 = await item.create_item_instance(cursor, 1)
+    item3 = await item.create_item_instance(cursor, 2)
+    assert item1 == 1
+    assert item2 == 2
+    assert item3 == 3
+    print("3. Fetching items.")
+    item1_dict = await item.get_item(cursor, 1)
+    item3_dict = await item.get_item(cursor, 3)
+    assert item1_dict["name"] == item3_dict["name"]
+    assert item1_dict["class_type"] == item3_dict["class_type"]
+    assert item1_dict["image"] == item3_dict["image"]
+    assert item1_dict["value"] == 10
+    assert item3_dict["value"] == 100
+    assert item3_dict["rarity"] > item1_dict["rarity"]
+    assert item1_dict["modifier"] is None
+    assert item3_dict["modifier"] == 'Bright'
+    print("4. Generating text descriptions.")
+    item2_desc = await item.get_text_description(cursor, 2)
+    item3_desc = await item.get_text_description(cursor, 3)
+    assert "\n" not in item2_desc
+    assert "a Bright Orb" in item3_desc
+    assert "an Orb" in item2_desc
+    assert "10 gold" in item2_desc
+    print("All tests passed!\n")
+
+
 async def run_tests(conn):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     # Run individual tests
     await test_deity(cursor)
     await test_follower(cursor)
+    await test_item(cursor)
     cursor.close()
     conn.close()
 

@@ -41,12 +41,21 @@ async def create_item_instance(cursor, item_id):
 
 # Returns information about an item as a string
 async def get_text_description(cursor, item_id):
-    item = get_item(cursor, item_id)
+    item = await get_item(cursor, item_id)
+    # Adjust a/an depending on the first letter
     if item["modifier"] is not None:
-        description = "You are looking at a %s %s. \
-                       It has a market value of %s gold, and weighs %s."
-        return description % (item["modifier"], item["name"],
+        first_char = item["modifier"][0].lower()
+    else:
+        first_char = item["name"][0].lower()
+    article = "a"
+    if first_char in ["a", "e", "i", "o", "u"]:
+        article = "an"
+    
+    if item["modifier"] is not None:
+        description = "You are looking at %s %s %s. "
+        description += "It has a market value of %s gold, and weighs %s."
+        return description % (article, item["modifier"], item["name"],
                               item["value"], item["weight"])
-    description = "You are looking at a %s. \
+    description = "You are looking at %s %s. \
                    It has a market value of %s gold, and weighs %s."
-    return description % (item["name"], item["value"], item["weight"])
+    return description % (article, item["name"], item["value"], item["weight"])
