@@ -41,3 +41,15 @@ async def get_deity_by_discord(cursor, discord):
         return None
     else:
         return results["id"]
+
+
+async def check_if_name_taken(cursor, name):
+    cursor.execute('''SELECT id
+                      FROM "project-deity".deities
+                      WHERE name = %s;''',
+                   (name, ))
+    results = cursor.fetchone()
+    if results is None:
+        return False
+    else:
+        return True
