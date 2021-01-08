@@ -13,9 +13,25 @@
 # included in all copies or substantial portions of the Software.
 
 import discord
+import json
 import os
+import psycopg2
+import psycopg2.extras
+
+import deity
 
 client = discord.Client()
+
+with open("config.json", "r") as file:
+    config = json.load(file)["database"]
+
+conn = psycopg2.connect(host=config["host"],
+                        port=config["port"],
+                        user=config["username"],
+                        password=config["password"],
+                        dbname=config["database"])
+conn.set_session(autocommit=True)
+cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 
 @client.event
@@ -30,13 +46,39 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author.id != client.user.id:
-        # Handle help request
-        if message.content == ".h" or message.content.startswith('.help'):
-            await message.channel.send(("Welcome to Project Deity! "
-                                        "You can view the commands here:\n"
-                                        "<https://github.com/Frostflake/pro"
-                                        "ject-deity/wiki/Discord-Commands>"))
+    if message.author.id == client.user.id:
+        return
+    # Handle help request
+    if message.content == ".h" or message.content.startswith('.help'):
+        await message.channel.send(("Welcome to Project Deity! "
+                                    "You can view the commands here:\n"
+                                    "<https://github.com/Frostflake/pro"
+                                    "ject-deity/wiki/Discord-Commands>"))
+    # Handle registration request
+    elif message.content.startswith(".r ") or message.content.startswith(".reg"):
+        # Make sure the user isn't registered yet
+        if await deity.get_deity_by_discord(cursor, message.author.id) is not None:
+            await message.channel.send("You are already registered!")
+            return
+        split_msg = message.content.split(" ", 1)
+        # Make sure we have a name to use
+        if len(split_msg) == 0:
+            await message.channel.send("Try '.reg NAME' where NAME is your chosen deity name.")
+            return
+        # Make sure the name isn't already used
+        if await deity.check_if_name_taken(cursor, split_msg[1]):
+            await message.channel.send("This name is already taken.")
+            return
+        # Make sure the name is valid
+        if not split_msg[1].isalnum():
+            await message.channel.send("Deity names must consist of only letters and numbers.")
+            return
+        if len(split_msg[1]) > 20:
+            await message.channel.send("Deity names are capped at 20 characters.")
+            return
+        # Register the user
+        await deity.create_deity(cursor, split_msg[1], discord=message.author.id)
+        await message.channel.send("Successfully registered as %s!" % split_msg[1])
 
 if os.path.isfile("discord.token"):
     with open("discord.token") as file:
