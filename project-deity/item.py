@@ -13,7 +13,7 @@
 # included in all copies or substantial portions of the Software.
 
 # Returns all fields associated with an item instance.
-def get_item(cursor, item_id):
+async def get_item(cursor, item_id):
     cursor.execute('''SELECT *
                       FROM player_items
                       WHERE id = %s;''',
@@ -22,7 +22,7 @@ def get_item(cursor, item_id):
 
 
 # Creates an item instance and returns the instance ID.
-def create_item_instance(cursor, item_id):
+async def create_item_instance(cursor, item_id):
     cursor.execute('''SELECT *
                       FROM items
                       WHERE id = %s;''',
@@ -36,3 +36,16 @@ def create_item_instance(cursor, item_id):
                     master["value"], master["weight"], master["rarity"],
                     master["modifier"], master["json_attributes"]))
     return cursor.fetchone()["id"]
+
+
+# Returns information about an item as a string
+async def get_text_description(cursor, item_id):
+    item = get_item(cursor, item_id)
+    if item["modifier"] is not None:
+        description = "You are looking at a %s %s. \
+                       It has a market value of %s gold, and weighs %s."
+        return description % (item["modifier"], item["name"],
+                              item["value"], item["weight"])
+    description = "You are looking at a %s. \
+                   It has a market value of %s gold, and weighs %s."
+    return description % (item["name"], item["value"], item["weight"])
