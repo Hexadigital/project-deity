@@ -29,7 +29,7 @@ async def find_free_slot(cursor, follower_id):
                       ORDER BY slot_num ASC;''',
                    (follower_id, ))
     used_slots = [x["slot_num"] for x in cursor.fetchall()]
-    for i in range(1, inv_capacity):
+    for i in range(1, inv_capacity + 1):
         if i not in used_slots:
             return i
     return None

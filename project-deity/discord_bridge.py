@@ -19,7 +19,10 @@ import psycopg2
 import psycopg2.extras
 
 import deity
+import event
 import follower
+import item
+import lexicon
 
 client = discord.Client()
 
@@ -49,11 +52,14 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author.id == client.user.id or message.content[0] != ".":
+    if message.author.id == client.user.id or not message.content.startswith("."):
         return
     # Get deity and follower info
     deity_info = await deity.get_deity_by_discord(cursor, message.author.id)
-    follower_info = await follower.get_follower_info_by_deity(cursor, deity_info["id"])
+    if deity_info is not None:
+        follower_info = await follower.get_follower_info_by_deity(cursor, deity_info["id"])
+    else:
+        follower_info = None
     # Handle help request
     if message.content == ".h" or message.content.startswith('.help'):
         await message.channel.send(("Welcome to Project Deity! "
@@ -71,7 +77,7 @@ async def on_message(message):
             return
         split_msg = message.content.split(" ", 1)
         # Make sure we have a name to use
-        if len(split_msg) == 0:
+        if len(split_msg) == 1:
             await message.channel.send("Try '.register NAME' where NAME is your chosen deity name.")
             return
         # Make sure the name isn't already used
@@ -134,7 +140,7 @@ async def on_message(message):
             if not follower_id:
                 await message.channel.send("%s is not a valid starting class and caused an error. You can use '.lexicon Starting Classes' for more info." % arguments[1])
                 return
-            await message.channel.send("%s, a Level 1 %s, has been blessed by %s!" % (arguments[0], arguments[1], deity_info["name"]))
+            await message.channel.send("%s, a Level 1 %s, has begun to worship %s!" % (arguments[0], arguments[1], deity_info["name"]))
             return
         # Commands below this point require a follower...
         if follower_info is None:
@@ -144,7 +150,50 @@ async def on_message(message):
         if split_msg[1] == "info":
             await message.channel.send("Follower info has not yet been implemented.")
             return
-
+    # Handle daily login/item event
+    elif message.content.startswith(".d ") or message.content.startswith(".daily"):
+        if follower_info is None:
+            await message.channel.send("You need to create a follower before you can use this command.\nTry '.follower create'.")
+            return
+        daily_results = await event.handle_daily_login(cursor, follower_info["id"])
+        if not daily_results[0]:
+            await message.channel.send("You already claimed your daily for today! It will reset at midnight EST.")
+            return
+        if not daily_results[2]:
+            await message.channel.send("Your inventory is full! Clean it out before claiming your daily.")
+            return
+        # Get item info
+        reward_info = await item.get_master_item(cursor, daily_results[1])
+        response_text = ""
+        if reward_info["modifier"] is not None:
+            response_text += "You have received one %s %s!" % (reward_info["modifier"], reward_info["name"])
+        else:
+            response_text += "You have received one %s!" % reward_info["name"]
+        if (daily_results[3] % 7) == 0:
+            response_text += " The weekly rewards will now reset."
+        await message.channel.send(response_text)
+        return
+    elif message.content.startswith(".cheats"):
+        # Joke command?
+        await message.channel.send("This command can only be used if you're accessing Project Deity via a Bitcoin ATM.")
+        return
+    elif message.content.startswith(".l ") or message.content.startswith(".lex") or message.content.startswith(".lookup"):
+        split_msg = message.content.split(" ", 1)
+        if len(split_msg) == 1:
+            await message.channel.send("You need to specify the term to search for, like so:\n.lexicon SEARCH TERM")
+            return
+        elif split_msg[1].lower() == "latest":
+            lexi = await lexicon.get_latest_definitions(cursor)
+            response_text = "The latest additions to the lexicon are:\n"
+            for x in lexi:
+                response_text += x + ", "
+            await message.channel.send(response_text[:-2])
+        else:
+            lexi = await lexicon.get_definition(cursor, split_msg[1])
+            if not lexi:
+                await message.channel.send("No definition could be found for %s." % split_msg[1])
+                return
+            await message.channel.send(lexi)
 
 if os.path.isfile("discord.token"):
     with open("discord.token") as file:

@@ -178,7 +178,7 @@ async def test_inventory(cursor):
     assert await inventory.add_item(cursor, 1, 1) is True
     print("2. Attempt to add item to full inventory.")
     # Fill up inventory
-    for i in range(0, 21):
+    for i in range(0, 22):
         assert await inventory.add_item(cursor, 1, 1) is True
     assert await inventory.add_item(cursor, 1, 1) is False
     print("3. Delete items from inventory.")
