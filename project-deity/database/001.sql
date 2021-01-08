@@ -64,7 +64,6 @@ CREATE TABLE IF NOT EXISTS "project-deity".deities
 (
     id bigserial,
     name text NOT NULL,
-    follower bigint,
     discord bigint,
     PRIMARY KEY (id)
 );

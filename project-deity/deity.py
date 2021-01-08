@@ -13,15 +13,16 @@
 # included in all copies or substantial portions of the Software.
 
 # Create a deity and return success status
-async def create_deity(cursor, name, follower, discord=None):
+async def create_deity(cursor, name, discord=None):
     # Insert row for deity
-    cursor.execute('''INSERT INTO deities
+    cursor.execute('''INSERT INTO "project-deity".deities
                       (name)
-                      VALUES (%s);''', (name, ))
+                      VALUES (%s)
+                      RETURNING id;''', (name, ))
     # Add Discord ID if we have one
     if discord is not None:
         row_id = cursor.fetchone()["id"]
-        cursor.execute('''UPDATE deities
+        cursor.execute('''UPDATE "project-deity".deities
                           SET discord = %s
                           WHERE id = %s;''',
                        (discord, row_id))
@@ -32,11 +33,11 @@ async def create_deity(cursor, name, follower, discord=None):
 # Returns None if nothing is found.
 async def get_deity_by_discord(cursor, discord):
     cursor.execute('''SELECT id
-                      FROM deities
+                      FROM "project-deity".deities
                       WHERE discord = %s;''',
                    (discord, ))
     results = cursor.fetchone()
-    if len(results) == 0:
+    if results is None:
         return None
     else:
         return results["id"]
