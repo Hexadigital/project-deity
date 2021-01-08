@@ -35,6 +35,7 @@ cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 discord_guild_id = config["discord"]["guild"]
 
+
 @client.event
 async def on_ready():
     print('Logged in as')
