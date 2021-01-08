@@ -98,8 +98,7 @@ async def update_max_health(cursor, follower_id):
                       FROM "project-deity".follower_classes
                       WHERE id = %s;''', (follower_info["class_id"], ))
     hp_bonus = cursor.fetchone()["hp_bonus"]
-    new_max_health = int((((follower_info["level"] / 2)
-                           + follower_info["endurance"]) * 3) + hp_bonus)
+    new_max_health = int((((follower_info["level"] / 2) + follower_info["endurance"]) * 3) + hp_bonus)
     cursor.execute('''UPDATE "project-deity".followers
                       SET hp = %s, max_hp = %s
                       WHERE id = %s''',
@@ -117,8 +116,7 @@ async def update_max_mana(cursor, follower_id):
                       FROM "project-deity".follower_classes
                       WHERE id = %s;''', (follower_info["class_id"], ))
     mp_bonus = cursor.fetchone()["mp_bonus"]
-    new_max_mana = int((((follower_info["level"] / 2)
-                         + follower_info["intelligence"]) * 3) + mp_bonus)
+    new_max_mana = int((((follower_info["level"] / 2) + follower_info["intelligence"]) * 3) + mp_bonus)
     cursor.execute('''UPDATE "project-deity".followers
                       SET mp = %s, max_mp = %s
                       WHERE id = %s;''',
