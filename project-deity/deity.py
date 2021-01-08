@@ -15,13 +15,15 @@
 # Create a deity and return success status
 async def create_deity(cursor, name, follower, discord=None):
     # Insert row for deity
-    cursor.execute('''INSERT INTO deities (name)
-                       VALUES (%s);''', (name, ))
+    cursor.execute('''INSERT INTO deities
+                      (name)
+                      VALUES (%s);''', (name, ))
     # Add Discord ID if we have one
     if discord is not None:
-        row_id = cursor.fetchone()[0]
+        row_id = cursor.fetchone()["id"]
         cursor.execute('''UPDATE deities
-                          SET discord = %s WHERE id = %s;''',
+                          SET discord = %s
+                          WHERE id = %s;''',
                        (discord, row_id))
     return True
 
@@ -29,11 +31,12 @@ async def create_deity(cursor, name, follower, discord=None):
 # Given a Discord ID, find the associated deity's ID.
 # Returns None if nothing is found.
 async def get_deity_by_discord(cursor, discord):
-    cursor.execute('''SELECT * FROM deities
+    cursor.execute('''SELECT id
+                      FROM deities
                       WHERE discord = %s;''',
                    (discord, ))
     results = cursor.fetchone()
     if len(results) == 0:
         return None
     else:
-        return results[0]
+        return results["id"]

@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS "project-deity".follower_inventories
     follower_id integer NOT NULL,
     slot_num smallint NOT NULL,
     item_id bigint NOT NULL,
-    player_item boolean NOT NULL DEFAULT false,
     PRIMARY KEY (id)
 );
 COMMENT ON TABLE "project-deity".follower_inventories
@@ -41,7 +40,7 @@ CREATE TABLE IF NOT EXISTS "project-deity".items
     PRIMARY KEY (id)
 );
 COMMENT ON TABLE "project-deity".items
-  IS 'This table holds the "master" items, used as actual items for non-crafted items (such as resources) and used as templates for crafted items.';
+  IS 'This table holds the "master" items, used as templates for other items.';
 
 -- Create crafted item table
 CREATE TABLE IF NOT EXISTS "project-deity".player_items
@@ -58,7 +57,7 @@ CREATE TABLE IF NOT EXISTS "project-deity".player_items
     PRIMARY KEY (id)
 );
 COMMENT ON TABLE "project-deity".player_items
-  IS 'This table holds player-created items.';
+  IS 'This table holds instances of items.';
 
 -- Create account table
 CREATE TABLE IF NOT EXISTS "project-deity".deities

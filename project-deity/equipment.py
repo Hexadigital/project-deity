@@ -12,47 +12,63 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
-class Equipment(object):
-    def __init__(self):
-        self.equipped = {
-            "Accessory": None,
-            "Helmet": None,
-            "Ring": None,
-            "Weapon": None,
-            "Armor": None,
-            "Shield": None,
-            "Gloves": None,
-            "Legs": None,
-            "Boots": None
-        }
+equippable_item_types = ["Accessory", "Helmet", "Ring", "Weapon", "Armor",
+                         "Shield", "Gloves", "Legs", "Boots"]
 
-    # Returns False if the item can't be equipped,
-    # Returns None if the item is equipped to an empty slot,
-    # and otherwise returns the previously equipped item
-    def equip_item(self, item_object):
-        if item_object.class_type in self.equipped.keys():
-            old_item = self.equipped[item_object.class_type]
-            self.equipped[item_object.class_type] = item_object
-            return old_item
-        else:
-            # Not an equip item
-            return False
 
-    # Returns a comma separated list of the equipment slots
-    def __str__(self):
-        equipment_order = ["Accessory", "Helmet", "Ring", "Weapon",
-                           "Armor", "Shield", "Gloves", "Legs", "Boots"]
-        equipment_string = ""
-        for slot in equipment_order:
-            item = self.equipped[slot]
-            if item is not None:
-                if item.modifier:
-                    equipment_string += item.modifier + " " + item.name
-                else:
-                    equipment_string += item.name
-                equipment_string += ", "
-        if len(equipment_string) == 0:
-            return equipment_string
-        else:
-            # Remove the last delimiter
-            return equipment_string[:-2]
+# Returns False if nothing was done
+# Returns True if item was equipped to an empty slot successfully
+# Returns the item ID of the previously equipped item otherwise
+async def equip_item(cursor, follower_id, slot_num):
+    # What inventory item are we equipping?
+    cursor.execute('''SELECT item_id
+                      FROM follower_inventories
+                      WHERE follower_id = %s
+                      AND slot_num = %s;''',
+                   (follower_id, slot_num))
+    item_id = cursor.fetchone()["item_id"]
+    # What class is the item?
+    cursor.execute('''SELECT class_type
+                      FROM player_items
+                      WHERE id = %s;''',
+                   (item_id, ))
+    class_type = cursor.fetchone()["class_type"]
+    # Is this a piece of equipment?
+    if class_type not in equippable_item_types:
+        return False
+    # Is there an item equipped in this slot?
+    cursor.execute('''SELECT *
+                      FROM follower_equipment
+                      WHERE follower_id = %s;''',
+                   (follower_id, ))
+    old_item = cursor.fetchone()[class_type.lower()]
+    # Handle inventory management
+    if old_item is not None:
+        # Return item to inventory. We can reuse the
+        # equipping item's slot so we don't need to
+        # worry about inventory space.
+        cursor.execute('''UPDATE follower_inventories
+                          SET item_id = %s
+                          WHERE follower_id = %s
+                          AND slot_num = %s;''',
+                       (item_id, follower_id, slot_num))
+    else:
+        # If we aren't reusing the inventory slot, then
+        # we need to remove the item we're equipping
+        # from the inventory.
+        cursor.execute('''DELETE FROM follower_inventories
+                          WHERE follower_id = %s
+                          AND slot_num = %s;''',
+                       (follower_id, slot_num))
+    # Equip new item
+    # Yes, yes, string concatination for SQL is a sin
+    # but in this case it's not user input, it's from
+    # equippable_item_types up above
+    cursor.execute('''UPDATE follower_equipment
+                      SET ''' + class_type.lower() + ''' = %s
+                      WHERE follower_id = %s;''',
+                   (item_id, follower_id))
+    # Return status
+    if old_item is None:
+        return True
+    return item_id
