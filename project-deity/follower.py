@@ -16,7 +16,7 @@
 # Returns False otherwise
 async def try_level_up(cursor, follower_id):
     cursor.execute('''SELECT exp, next_level_exp, level, stat_points
-                      FROM followers
+                      FROM "project-deity".followers
                       WHERE id = %s;''', (follower_id, ))
     result_dict = cursor.fetchone()
     current_exp = result_dict["exp"]
@@ -28,7 +28,7 @@ async def try_level_up(cursor, follower_id):
         new_req_exp = get_exp_requirement(level + 1)
         stat_points += 3
         # Update follower records
-        cursor.execute('''UPDATE followers
+        cursor.execute('''UPDATE "project-deity".followers
                       SET exp = %s, level = %s,
                       next_level_exp = %s, stat_points = %s
                       WHERE id = %s;''',
@@ -56,11 +56,11 @@ async def get_exp_requirement(level):
 # Adds the given amount of exp, returns True if follower leveled up.
 async def add_exp(cursor, follower_id, amount):
     cursor.execute('''SELECT exp
-                      FROM followers
+                      FROM "project-deity".followers
                       WHERE id = %s;''', (follower_id, ))
     current_exp = cursor.fetchone()["exp"]
     new_exp = current_exp + amount
-    cursor.execute('''UPDATE followers
+    cursor.execute('''UPDATE "project-deity".followers
                       SET exp = %s
                       WHERE id = %s;''',
                    (new_exp, follower_id))
@@ -70,11 +70,11 @@ async def add_exp(cursor, follower_id, amount):
 # Adds the given amount of currency.
 async def add_monies(cursor, follower_id, amount):
     cursor.execute('''SELECT monies
-                      FROM followers
+                      FROM "project-deity".followers
                       WHERE id = %s;''', (follower_id, ))
     current_monies = cursor.fetchone()["monies"]
     new_monies = current_monies + amount
-    cursor.execute('''UPDATE followers
+    cursor.execute('''UPDATE "project-deity".followers
                       SET monies = %s
                       WHERE id = %s;''',
                    (new_monies, follower_id))
@@ -84,16 +84,16 @@ async def add_monies(cursor, follower_id, amount):
 # Resets the max health based off new level/stats.
 async def update_max_health(cursor, follower_id):
     cursor.execute('''SELECT class_id, level, endurance
-                      FROM followers
+                      FROM "project-deity".followers
                       WHERE id = %s;''', (follower_id, ))
     follower_info = cursor.fetchone()
     cursor.execute('''SELECT hp_bonus
-                      FROM follower_classes
+                      FROM "project-deity".follower_classes
                       WHERE id = %s;''', (follower_info["class_id"]))
     hp_bonus = cursor.fetchone()["hp_bonus"]
     new_max_health = int((((follower_info["level"] / 2)
                            + follower_info["endurance"]) * 3) + hp_bonus)
-    cursor.execute('''UPDATE followers
+    cursor.execute('''UPDATE "project-deity".followers
                       SET hp = %s, max_hp = %s
                       WHERE id = %s''',
                    (new_max_health, new_max_health, follower_id))
@@ -103,16 +103,16 @@ async def update_max_health(cursor, follower_id):
 # Resets the max mana based off new level/stats.
 async def update_max_mana(cursor, follower_id):
     cursor.execute('''SELECT class_id, level, intelligence
-                      FROM followers
+                      FROM "project-deity".followers
                       WHERE id = %s;''', (follower_id, ))
     follower_info = cursor.fetchone()
     cursor.execute('''SELECT mp_bonus
-                      FROM follower_classes
+                      FROM "project-deity".follower_classes
                       WHERE id = %s;''', (follower_info["class_id"]))
     mp_bonus = cursor.fetchone()["mp_bonus"]
     new_max_mana = int((((follower_info["level"] / 2)
                          + follower_info["intelligence"]) * 3) + mp_bonus)
-    cursor.execute('''UPDATE followers
+    cursor.execute('''UPDATE "project-deity".followers
                       SET mp = %s, max_mp = %s
                       WHERE id = %s;''',
                    (new_max_mana, new_max_mana, follower_id))
@@ -122,7 +122,7 @@ async def update_max_mana(cursor, follower_id):
 # Returns the five starting stat values
 async def get_starting_stats(cursor, class_name):
     cursor.execute('''SELECT strength, endurance, intelligence, agility, willpower
-                   FROM follower_classes
+                   FROM "project-deity".follower_classes
                    WHERE class_name = %s;''', (class_name, ))
     results = cursor.fetchone()["class_name"]
     return results

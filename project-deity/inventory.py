@@ -16,7 +16,7 @@
 # or returns None if no free slots exist.
 async def find_free_slot(cursor, follower_id):
     cursor.execute('''SELECT inv_width, inv_height
-                      FROM deities
+                      FROM "project-deity".deities
                       WHERE id = %s;''',
                    (follower_id, ))
     results = cursor.fetchone()
@@ -24,7 +24,7 @@ async def find_free_slot(cursor, follower_id):
     inv_height = results["inv_height"]
     inv_capacity = inv_width * inv_height
     cursor.execute('''SELECT slot_num
-                      FROM follower_inventories
+                      FROM "project-deity".follower_inventories
                       WHERE follower_id = %s
                       ORDER BY slot_num ASC;''',
                    (follower_id, ))
@@ -41,7 +41,7 @@ async def add_item(cursor, follower_id, item_id, unique=False):
     item_slot = find_free_slot(cursor, follower_id)
     if item_slot is None:
         return False
-    cursor.execute('''INSERT INTO follower_inventories
+    cursor.execute('''INSERT INTO "project-deity".follower_inventories
                       (follower_id, slot_num, item_id)
                       VALUES (%s, %s, %s);''',
                    (follower_id, item_slot, item_id))

@@ -15,7 +15,7 @@
 # Returns all fields associated with an item instance.
 async def get_item(cursor, item_id):
     cursor.execute('''SELECT *
-                      FROM player_items
+                      FROM "project-deity".player_items
                       WHERE id = %s;''',
                    (item_id, ))
     return cursor.fetchone()
@@ -24,11 +24,11 @@ async def get_item(cursor, item_id):
 # Creates an item instance and returns the instance ID.
 async def create_item_instance(cursor, item_id):
     cursor.execute('''SELECT *
-                      FROM items
+                      FROM "project-deity".items
                       WHERE id = %s;''',
                    (item_id, ))
     master = cursor.fetchone()
-    cursor.execute('''INSERT INTO player_items
+    cursor.execute('''INSERT INTO "project-deity".player_items
                       (name, class_type, image, value, weight, rarity,
                       modifier, json_attributes)
                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s);''',

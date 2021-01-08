@@ -22,14 +22,14 @@ equippable_item_types = ["Accessory", "Helmet", "Ring", "Weapon", "Armor",
 async def equip_item(cursor, follower_id, slot_num):
     # What inventory item are we equipping?
     cursor.execute('''SELECT item_id
-                      FROM follower_inventories
+                      FROM "project-deity".follower_inventories
                       WHERE follower_id = %s
                       AND slot_num = %s;''',
                    (follower_id, slot_num))
     item_id = cursor.fetchone()["item_id"]
     # What class is the item?
     cursor.execute('''SELECT class_type
-                      FROM player_items
+                      FROM "project-deity".player_items
                       WHERE id = %s;''',
                    (item_id, ))
     class_type = cursor.fetchone()["class_type"]
@@ -38,7 +38,7 @@ async def equip_item(cursor, follower_id, slot_num):
         return False
     # Is there an item equipped in this slot?
     cursor.execute('''SELECT *
-                      FROM follower_equipment
+                      FROM "project-deity".follower_equipment
                       WHERE follower_id = %s;''',
                    (follower_id, ))
     old_item = cursor.fetchone()[class_type.lower()]
@@ -47,7 +47,7 @@ async def equip_item(cursor, follower_id, slot_num):
         # Return item to inventory. We can reuse the
         # equipping item's slot so we don't need to
         # worry about inventory space.
-        cursor.execute('''UPDATE follower_inventories
+        cursor.execute('''UPDATE "project-deity".follower_inventories
                           SET item_id = %s
                           WHERE follower_id = %s
                           AND slot_num = %s;''',
@@ -56,7 +56,7 @@ async def equip_item(cursor, follower_id, slot_num):
         # If we aren't reusing the inventory slot, then
         # we need to remove the item we're equipping
         # from the inventory.
-        cursor.execute('''DELETE FROM follower_inventories
+        cursor.execute('''DELETE FROM "project-deity".follower_inventories
                           WHERE follower_id = %s
                           AND slot_num = %s;''',
                        (follower_id, slot_num))
@@ -64,7 +64,7 @@ async def equip_item(cursor, follower_id, slot_num):
     # Yes, yes, string concatination for SQL is a sin
     # but in this case it's not user input, it's from
     # equippable_item_types up above
-    cursor.execute('''UPDATE follower_equipment
+    cursor.execute('''UPDATE "project-deity".follower_equipment
                       SET ''' + class_type.lower() + ''' = %s
                       WHERE follower_id = %s;''',
                    (item_id, follower_id))
