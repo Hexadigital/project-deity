@@ -140,4 +140,22 @@ CREATE TABLE "project-deity".follower_classes
 COMMENT ON TABLE "project-deity".follower_classes
     IS 'This table contains information relating to character/follower classes.';
 
--- Populate classes
+-- Create daily login/activity table
+CREATE TABLE "project-deity".daily_login
+(
+    follower_id bigint NOT NULL,
+    streak smallint NOT NULL DEFAULT 0,
+    last_login timestamp with time zone NOT NULL DEFAULT now(),
+    CONSTRAINT daily_login_pkey PRIMARY KEY (follower_id)
+);
+COMMENT ON TABLE "project-deity".daily_login
+    IS 'This table holds the last login time as well as the streak for items.';
+
+-- Create table for holding login rewards
+CREATE TABLE "project-deity".login_rewards
+(
+    day smallint,
+    item_id bigint NOT NULL
+);
+COMMENT ON TABLE "project-deity".login_rewards
+    IS 'This table holds the items that drop based off login streak.';

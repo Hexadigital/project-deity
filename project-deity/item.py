@@ -39,6 +39,15 @@ async def create_item_instance(cursor, item_id):
     return cursor.fetchone()["id"]
 
 
+# Deletes an item instance and returns the success value.
+async def delete_item(cursor, item_instance_id):
+    cursor.execute('''DELETE FROM "project-deity".player_items
+                      WHERE id = %s;''',
+                   (item_instance_id, ))
+    # TODO: Return False if no such item existed
+    return True
+
+
 # Returns information about an item as a string
 async def get_text_description(cursor, item_id):
     item = await get_item(cursor, item_id)

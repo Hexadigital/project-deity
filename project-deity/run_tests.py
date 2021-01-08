@@ -13,6 +13,8 @@
 # included in all copies or substantial portions of the Software.
 
 import asyncio
+from datetime import datetime
+from datetime import timedelta
 import json
 import os
 import psycopg2
@@ -20,6 +22,7 @@ import psycopg2.extras
 
 import deity
 import equipment
+import event
 import follower
 import inventory
 import item
@@ -123,14 +126,17 @@ async def test_item(cursor):
                       (name, class_type, image, value, weight, rarity,
                       modifier, json_attributes)
                       VALUES ('Orb of Illusion', 'Weapon', 'orb.jpg',
-                      10, 10, 0, null, null)
-                      RETURNING id;''')
+                      10, 10, 0, null, null);''')
     cursor.execute('''INSERT INTO "project-deity".items
                       (name, class_type, image, value, weight, rarity,
                       modifier, json_attributes)
                       VALUES ('Orb of Illusion', 'Weapon', 'orb.jpg',
-                      100, 10, 1, 'Bright', null)
-                      RETURNING id;''')
+                      100, 10, 1, 'Bright', null);''')
+    cursor.execute('''INSERT INTO "project-deity".items
+                      (name, class_type, image, value, weight, rarity,
+                      modifier, json_attributes)
+                      VALUES ('Ultimate Reward', 'Shield', 'chest.jpg',
+                      1000, 100, 3, 'Veiled', null);''')
     print("2. Creating item instances.")
     item1 = await item.create_item_instance(cursor, 1)
     item2 = await item.create_item_instance(cursor, 1)
@@ -194,6 +200,95 @@ async def test_equipment(cursor):
     print("All tests passed!\n")
 
 
+async def test_event(cursor):
+    print("Testing event.py...")
+    print("1. Populating login_rewards table with sample data.")
+    cursor.execute('''INSERT INTO "project-deity".login_rewards
+                      (day, item_id)
+                      VALUES (1, 1);''')
+    cursor.execute('''INSERT INTO "project-deity".login_rewards
+                      (day, item_id)
+                      VALUES (2, 1);''')
+    cursor.execute('''INSERT INTO "project-deity".login_rewards
+                      (day, item_id)
+                      VALUES (3, 1);''')
+    cursor.execute('''INSERT INTO "project-deity".login_rewards
+                      (day, item_id)
+                      VALUES (4, 1);''')
+    cursor.execute('''INSERT INTO "project-deity".login_rewards
+                      (day, item_id)
+                      VALUES (5, 2);''')
+    cursor.execute('''INSERT INTO "project-deity".login_rewards
+                      (day, item_id)
+                      VALUES (6, 2);''')
+    cursor.execute('''INSERT INTO "project-deity".login_rewards
+                      (day, item_id)
+                      VALUES (7, 3);''')
+    print("2. Test daily login.")
+    # First login
+    first_login = await event.handle_daily_login(cursor, 2)
+    assert first_login[0] is True
+    assert first_login[1] == 1
+    assert first_login[2] is True
+    assert first_login[3] == 1
+    # Repeated login within the same day
+    repeat_login = await event.handle_daily_login(cursor, 2)
+    assert repeat_login[0] is False
+    assert repeat_login[1] is None
+    assert repeat_login[2] is None
+    assert repeat_login[3] == 1
+    # Second login in a row
+    todays_date = datetime.now()
+    yesterdays_date = todays_date - timedelta(days=1)
+    cursor.execute('''UPDATE "project-deity".daily_login
+                      SET last_login = %s
+                      WHERE follower_id = %s;''',
+                   (yesterdays_date, 2))
+    second_login = await event.handle_daily_login(cursor, 2)
+    assert second_login[0] is True
+    assert second_login[1] == 1
+    assert second_login[2] is True
+    assert second_login[3] == 2
+    # Repeated login where a streak exists
+    repeat_login2 = await event.handle_daily_login(cursor, 2)
+    assert repeat_login2[0] is False
+    assert repeat_login2[1] is None
+    assert repeat_login2[2] is None
+    assert repeat_login2[3] == 2
+    # Login that breaks a streak
+    three_days_ago = todays_date - timedelta(days=3)
+    cursor.execute('''UPDATE "project-deity".daily_login
+                      SET last_login = %s
+                      WHERE follower_id = %s;''',
+                   (three_days_ago, 2))
+    third_login = await event.handle_daily_login(cursor, 2)
+    assert third_login[0] is True
+    assert third_login[1] == 1
+    assert third_login[2] is True
+    assert third_login[3] == 1
+    # Seventh day streak
+    cursor.execute('''UPDATE "project-deity".daily_login
+                      SET last_login = %s, streak = %s
+                      WHERE follower_id = %s;''',
+                   (yesterdays_date, 6, 2))
+    full_week_login = await event.handle_daily_login(cursor, 2)
+    assert full_week_login[0] is True
+    assert full_week_login[1] == 3
+    assert full_week_login[2] is True
+    assert full_week_login[3] == 7
+    # Login that keeps a streak but resets rewards (aka day 8)
+    cursor.execute('''UPDATE "project-deity".daily_login
+                      SET last_login = %s
+                      WHERE follower_id = %s;''',
+                   (yesterdays_date, 2))
+    looped_login = await event.handle_daily_login(cursor, 2)
+    assert looped_login[0] is True
+    assert looped_login[1] == 1
+    assert looped_login[2] is True
+    assert looped_login[3] == 1
+    print("All tests passed!\n")
+
+
 async def run_tests(conn):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     # Run individual tests
@@ -202,6 +297,7 @@ async def run_tests(conn):
     await test_item(cursor)
     await test_inventory(cursor)
     await test_equipment(cursor)
+    await test_event(cursor)
     cursor.close()
     conn.close()
 

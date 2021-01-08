@@ -37,14 +37,14 @@ async def find_free_slot(cursor, follower_id):
 
 # Returns True if item is added,
 # returns False if inventory is full.
-async def add_item(cursor, follower_id, item_id):
+async def add_item(cursor, follower_id, item_instance_id):
     item_slot = await find_free_slot(cursor, follower_id)
     if item_slot is None:
         return False
     cursor.execute('''INSERT INTO "project-deity".follower_inventories
                       (follower_id, slot_num, item_id)
                       VALUES (%s, %s, %s);''',
-                   (follower_id, item_slot, item_id))
+                   (follower_id, item_slot, item_instance_id))
     return True
 
 
