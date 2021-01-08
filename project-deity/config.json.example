@@ -5,6 +5,6 @@
 		"port": "5432",
 		"username": "root",
 		"password": "makethissecure",
-		"database": "project_deity"
+		"database": "project-deity"
 	}
 }

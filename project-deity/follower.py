@@ -121,8 +121,28 @@ async def update_max_mana(cursor, follower_id):
 
 # Returns the five starting stat values
 async def get_starting_stats(cursor, class_name):
-    cursor.execute('''SELECT strength, endurance, intelligence, agility, willpower
+    cursor.execute('''SELECT id, strength, endurance, intelligence, agility, willpower
                    FROM "project-deity".follower_classes
                    WHERE class_name = %s;''', (class_name, ))
-    results = cursor.fetchone()["class_name"]
+    results = cursor.fetchone()
     return results
+
+
+# Returns follower ID if created, False otherwise
+async def create_follower(cursor, name, class_name, deity_id):
+    class_info = await get_starting_stats(cursor, class_name)
+    # Ensure we got class info
+    if class_info is None:
+        return False
+    cursor.execute('''INSERT INTO "project-deity".followers
+                      (name, class_id, deity_id,
+                      strength, endurance, intelligence,
+                      agility, willpower)
+                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                      RETURNING id;''',
+                   (name, class_info["id"], deity_id,
+                    class_info["strength"], class_info["endurance"],
+                    class_info["intelligence"], class_info["agility"],
+                    class_info["willpower"]))
+    follower_id = cursor.fetchone()["id"]
+    return follower_id

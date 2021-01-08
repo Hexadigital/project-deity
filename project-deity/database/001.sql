@@ -133,9 +133,7 @@ CREATE TABLE "project-deity".follower_classes
     mp_bonus smallint NOT NULL,
     PRIMARY KEY (id)
 );
-
-ALTER TABLE "project-deity".follower_classes
-    OWNER to scuttlest;
-
 COMMENT ON TABLE "project-deity".follower_classes
     IS 'This table contains information relating to character/follower classes.';
+
+-- Populate classes

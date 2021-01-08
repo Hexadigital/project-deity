@@ -19,6 +19,7 @@ import psycopg2
 import psycopg2.extras
 
 import deity
+import follower
 
 
 async def create_test_schema(cursor):
@@ -39,6 +40,7 @@ async def delete_test_schema(cursor):
 
 
 async def test_deity(cursor):
+    print("Testing deity.py...")
     print("1. Populating deities table with sample data.")
     await deity.create_deity(cursor, "Duneyrr")
     await deity.create_deity(cursor, "Dvalinn")
@@ -48,15 +50,37 @@ async def test_deity(cursor):
     assert inv_id is None
     acc3_id = await deity.get_deity_by_discord(cursor, 976197819574237961)
     assert acc3_id == 3
-    pass
+    print("All tests passed!\n")
+
+
+async def test_follower(cursor):
+    print("Testing follower.py...")
+    print("1. Populating follower classes table with sample data.")
+    cursor.execute('''INSERT INTO "project-deity".follower_classes
+                   (class_name, strength, endurance, intelligence, agility,
+                   willpower, hp_bonus, mp_bonus)
+                   VALUES ('Moth', 0, 1, 2, 3, 4, 10, 10);''')
+    cursor.execute('''INSERT INTO "project-deity".follower_classes
+                   (class_name, strength, endurance, intelligence, agility,
+                   willpower, hp_bonus, mp_bonus)
+                   VALUES ('Octopus', 4, 3, 2, 1, 0, 100, 100);''')
+    print("2. Populating followers table with sample data.")
+    follower_id1 = await follower.create_follower(cursor, "White", "Moth", 1)
+    assert follower_id1 == 1
+    follower_id2 = await follower.create_follower(cursor, "Blue", "Octopus", 2)
+    assert follower_id2 == 2
+    follower_id3 = await follower.create_follower(cursor, "Black", "Shadow", 3)
+    assert follower_id3 is False
+    print("All tests passed!\n")
 
 
 async def run_tests(conn):
     cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
     # Run individual tests
     await test_deity(cursor)
+    await test_follower(cursor)
     # Clean up
-    await delete_test_schema(cursor)
+    #await delete_test_schema(cursor)
     cursor.close()
     conn.close()
 
@@ -70,7 +94,7 @@ if __name__ == '__main__':
                             port=config["port"],
                             user=config["username"],
                             password=config["password"],
-                            dbname=config["schema"] + "_test")
+                            dbname=config["database"] + "_test")
     conn.set_session(autocommit=True)
 
     cursor = conn.cursor()
@@ -84,6 +108,6 @@ if __name__ == '__main__':
                             port=config["port"],
                             user=config["username"],
                             password=config["password"],
-                            dbname=config["schema"] + "_test")
+                            dbname=config["database"] + "_test")
 
     asyncio.run(run_tests(conn))
