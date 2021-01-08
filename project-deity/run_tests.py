@@ -12,10 +12,52 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
+import json
+import os
+import psycopg2
 
-def run_tests():
-    pass
+
+def create_test_schema(cursor):
+    print("Creating test schema...")
+    # Loop through version upgrades
+    for sql_file in os.listdir("./database"):
+        # Skip non-SQL files
+        if sql_file.endswith(".sql"):
+            print("Executing %s..." % sql_file)
+            cursor.execute(open("./database/" + sql_file, "r").read())
+    print("Test schema created!\n")
+
+def delete_test_schema(cursor):
+    print("Deleting test schema...")
+    cursor.execute('''DROP SCHEMA "project-deity" CASCADE;''')
+    print("Test schema deleted!\n")
+
+
+def run_tests(conn):
+    cursor = conn.cursor()
+    # Create schema for testing
+    create_test_schema(cursor)
+    # Run individual tests
+    try:
+        pass
+    except Exception as e:
+        print(e)
+    # Clean up
+    delete_test_schema(cursor)
+    cursor.close()
+    conn.close()
 
 
 if __name__ == '__main__':
-    run_tests()
+    # Load database config
+    with open("config.json", "r") as file:
+        config = json.load(file)["database"]
+
+    conn = psycopg2.connect(host=config["host"],
+                            port=config["port"],
+                            user=config["username"],
+                            password=config["password"],
+                            dbname=config["schema"] + "_test")
+    conn.set_session(autocommit=True)
+
+    run_tests(conn)
