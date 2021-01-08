@@ -12,6 +12,13 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
+async def get_follower_info(cursor, follower_id):
+    cursor.execute('''SELECT *
+                   FROM "project-deity".followers
+                   WHERE id = %s;''', (follower_id, ))
+    return cursor.fetchone()
+
+
 # Returns True if the player can level up
 # Returns False otherwise
 async def try_level_up(cursor, follower_id):
@@ -25,7 +32,7 @@ async def try_level_up(cursor, follower_id):
     stat_points = result_dict["stat_points"]
     if current_exp >= req_exp:
         # Get exp requirement for next level
-        new_req_exp = get_exp_requirement(level + 1)
+        new_req_exp = await get_exp_requirement(level + 1)
         stat_points += 3
         # Update follower records
         cursor.execute('''UPDATE "project-deity".followers
@@ -36,8 +43,8 @@ async def try_level_up(cursor, follower_id):
                         level + 1, new_req_exp,
                         stat_points, follower_id))
         # Update health and mana, and heal
-        update_max_health(cursor, follower_id)
-        update_max_mana(cursor, follower_id)
+        await update_max_health(cursor, follower_id)
+        await update_max_mana(cursor, follower_id)
         return True
     else:
         return False
@@ -64,7 +71,7 @@ async def add_exp(cursor, follower_id, amount):
                       SET exp = %s
                       WHERE id = %s;''',
                    (new_exp, follower_id))
-    return try_level_up(follower_id)
+    return await try_level_up(cursor, follower_id)
 
 
 # Adds the given amount of currency.
@@ -89,7 +96,7 @@ async def update_max_health(cursor, follower_id):
     follower_info = cursor.fetchone()
     cursor.execute('''SELECT hp_bonus
                       FROM "project-deity".follower_classes
-                      WHERE id = %s;''', (follower_info["class_id"]))
+                      WHERE id = %s;''', (follower_info["class_id"], ))
     hp_bonus = cursor.fetchone()["hp_bonus"]
     new_max_health = int((((follower_info["level"] / 2)
                            + follower_info["endurance"]) * 3) + hp_bonus)
@@ -108,7 +115,7 @@ async def update_max_mana(cursor, follower_id):
     follower_info = cursor.fetchone()
     cursor.execute('''SELECT mp_bonus
                       FROM "project-deity".follower_classes
-                      WHERE id = %s;''', (follower_info["class_id"]))
+                      WHERE id = %s;''', (follower_info["class_id"], ))
     mp_bonus = cursor.fetchone()["mp_bonus"]
     new_max_mana = int((((follower_info["level"] / 2)
                          + follower_info["intelligence"]) * 3) + mp_bonus)
@@ -145,4 +152,6 @@ async def create_follower(cursor, name, class_name, deity_id):
                     class_info["intelligence"], class_info["agility"],
                     class_info["willpower"]))
     follower_id = cursor.fetchone()["id"]
+    await update_max_health(cursor, follower_id)
+    await update_max_mana(cursor, follower_id)
     return follower_id
