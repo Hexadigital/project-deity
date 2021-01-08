@@ -31,11 +31,16 @@ import item
 async def create_test_schema(cursor):
     print("Creating test schema...")
     # Loop through version upgrades
+    versions = []
     for sql_file in os.listdir("./database"):
         # Skip non-SQL files
         if sql_file.endswith(".sql"):
-            print("Executing %s..." % sql_file)
-            cursor.execute(open("./database/" + sql_file, "r").read())
+            versions.append(sql_file)
+    # Sort versions to make sure we do them in order
+    versions.sort()
+    for sql_file in versions:
+        print("Executing %s..." % sql_file)
+        cursor.execute(open("./database/" + sql_file, "r").read())
     print("Test schema created!\n")
 
 
@@ -52,10 +57,10 @@ async def test_deity(cursor):
     await deity.create_deity(cursor, "Dvalinn")
     await deity.create_deity(cursor, "Dainn", discord=976197819574237961)
     print("2. Getting Deity ID by Discord ID.")
-    inv_id = await deity.get_deity_by_discord(cursor, 96814651)
-    assert inv_id is None
-    acc3_id = await deity.get_deity_by_discord(cursor, 976197819574237961)
-    assert acc3_id == 3
+    inv_deity = await deity.get_deity_by_discord(cursor, 96814651)
+    assert inv_deity is None
+    acc3_deity = await deity.get_deity_by_discord(cursor, 976197819574237961)
+    assert acc3_deity["id"] == 3
     print("All tests passed!\n")
 
 

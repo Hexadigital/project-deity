@@ -19,6 +19,13 @@ async def get_follower_info(cursor, follower_id):
     return cursor.fetchone()
 
 
+async def get_follower_info_by_deity(cursor, deity_id):
+    cursor.execute('''SELECT *
+                   FROM "project-deity".followers
+                   WHERE deity_id = %s;''', (deity_id, ))
+    return cursor.fetchone()
+
+
 # Returns True if the player can level up
 # Returns False otherwise
 async def try_level_up(cursor, follower_id):
@@ -132,6 +139,18 @@ async def get_starting_stats(cursor, class_name):
                    WHERE class_name = %s;''', (class_name, ))
     results = cursor.fetchone()
     return results
+
+
+# Checks if a class is a valid starting class
+async def check_starting_class(cursor, class_name):
+    cursor.execute('''SELECT tier
+                   FROM "project-deity".follower_classes
+                   WHERE class_name = %s
+                   AND tier = 0;''', (class_name, ))
+    results = cursor.fetchone()
+    if results is None:
+        return False
+    return True
 
 
 # Returns follower ID if created, False otherwise

@@ -29,18 +29,15 @@ async def create_deity(cursor, name, discord=None):
     return True
 
 
-# Given a Discord ID, find the associated deity's ID.
+# Given a Discord ID, find the associated deity's info.
 # Returns None if nothing is found.
 async def get_deity_by_discord(cursor, discord):
-    cursor.execute('''SELECT id
+    cursor.execute('''SELECT id, name
                       FROM "project-deity".deities
                       WHERE discord = %s;''',
                    (discord, ))
     results = cursor.fetchone()
-    if results is None:
-        return None
-    else:
-        return results["id"]
+    return results
 
 
 async def check_if_name_taken(cursor, name):
