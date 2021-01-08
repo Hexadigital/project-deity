@@ -23,16 +23,17 @@ import deity
 client = discord.Client()
 
 with open("config.json", "r") as file:
-    config = json.load(file)["database"]
+    config = json.load(file)
 
-conn = psycopg2.connect(host=config["host"],
-                        port=config["port"],
-                        user=config["username"],
-                        password=config["password"],
-                        dbname=config["database"])
+conn = psycopg2.connect(host=config["database"]["host"],
+                        port=config["database"]["port"],
+                        user=config["database"]["username"],
+                        password=config["database"]["password"],
+                        dbname=config["database"]["database"])
 conn.set_session(autocommit=True)
 cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
+discord_guild_id = config["discord"]["guild"]
 
 @client.event
 async def on_ready():
@@ -56,6 +57,9 @@ async def on_message(message):
                                     "ject-deity/wiki/Discord-Commands>"))
     # Handle registration request
     elif message.content.startswith(".r ") or message.content.startswith(".reg"):
+        if message.guild is None or message.guild.id != discord_guild_id:
+            await message.channel.send("Registration can only be done in the official server.")
+            return
         # Make sure the user isn't registered yet
         if await deity.get_deity_by_discord(cursor, message.author.id) is not None:
             await message.channel.send("You are already registered!")

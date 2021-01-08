@@ -6,5 +6,8 @@
 		"username": "root",
 		"password": "makethissecure",
 		"database": "project-deity"
+	},
+	"discord": {
+		"guild": 123456789123456789
 	}
 }
