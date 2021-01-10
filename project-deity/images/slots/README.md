@@ -1,0 +1,1 @@
+This directory is where your item slot backgrounds, based off rarity, should go.

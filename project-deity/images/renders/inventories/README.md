@@ -1,0 +1,1 @@
+This directory contains the last renders for player inventories.

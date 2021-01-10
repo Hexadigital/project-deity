@@ -1,0 +1,1 @@
+This directory is where your item images should go.
