@@ -34,3 +34,13 @@ async def get_latest_definitions(cursor):
                       LIMIT 5''')
     results = cursor.fetchall()
     return [x["term"] for x in results]
+
+
+# Returns a random term and definition
+async def get_random_definition(cursor):
+    cursor.execute('''SELECT term, definition
+                      FROM "project-deity".lexicon
+                      ORDER BY RANDOM()
+                      LIMIT 1''')
+    results = cursor.fetchone()
+    return results["term"], results["definition"]

@@ -184,7 +184,7 @@ async def on_message(message):
     elif message.content.startswith(".l ") or message.content.startswith(".lex") or message.content.startswith(".lookup"):
         split_msg = message.content.split(" ", 1)
         if len(split_msg) == 1:
-            await message.channel.send("You need to specify the term to search for, like so:\n.lexicon SEARCH TERM")
+            await message.channel.send("You need to specify the term to search for, like so:\n.lexicon SEARCH TERM\nYou can also use 'latest' to see the latest additions, or 'random' to get a random entry.")
             return
         elif split_msg[1].lower() == "latest":
             lexi = await lexicon.get_latest_definitions(cursor)
@@ -192,6 +192,9 @@ async def on_message(message):
             for x in lexi:
                 response_text += x + ", "
             await message.channel.send(response_text[:-2])
+        elif split_msg[1].lower() == "random":
+            term, definition = await lexicon.get_random_definition(cursor)
+            await message.channel.send("**%s**\n%s" % (term, definition))
         else:
             lexi = await lexicon.get_definition(cursor, split_msg[1])
             if not lexi:
@@ -206,7 +209,7 @@ async def on_message(message):
             return
         split_msg = message.content.split(" ", 2)
         if len(split_msg) == 1:
-            inventory_render = await inventory.generate_inventory_image(cursor, deity_info["id"])
+            inventory_render = await inventory.generate_inventory_image(cursor, follower_info["id"])
             await message.channel.send(file=discord.File(inventory_render))
             return
         # Check for a valid subcommand

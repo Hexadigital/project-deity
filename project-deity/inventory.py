@@ -51,7 +51,7 @@ async def generate_inventory_image(cursor, follower_id):
     cursor.execute('''SELECT fi.slot_num, fi.item_id, pi.image, pi.rarity
                       FROM "project-deity".follower_inventories fi
                       INNER JOIN "project-deity".player_items pi ON fi.item_id = pi.id
-                      WHERE follower_id = %s
+                      WHERE fi.follower_id = %s
                       ORDER BY slot_num ASC;''',
                    (follower_id, ))
     used_slots = cursor.fetchall()
