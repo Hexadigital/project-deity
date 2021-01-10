@@ -14,9 +14,10 @@
 
 # Returns all fields associated with an item instance.
 async def get_item(cursor, item_id):
-    cursor.execute('''SELECT *
-                      FROM "project-deity".player_items
-                      WHERE id = %s;''',
+    cursor.execute('''SELECT pi.*, i.description
+                      FROM "project-deity".player_items pi
+                      INNER JOIN "project-deity".items i ON pi.master_item_id = i.id
+                      WHERE pi.id = %s;''',
                    (item_id, ))
     return cursor.fetchone()
 

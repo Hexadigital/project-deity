@@ -214,6 +214,7 @@ async def on_message(message):
                 await message.channel.send("No definition could be found for %s." % split_msg[1])
                 return
             await message.channel.send(lexi)
+            return
     # INVENTORY COMMAND
     elif message.content == ".i" or message.content.startswith(".i ") or message.content.startswith(".inv"):
         valid_subcommands = ["info"]
@@ -233,7 +234,38 @@ async def on_message(message):
             await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
             return
         elif split_msg[1].lower() == "info":
-            await message.channel.send("Item info coming soon!")
+            if not len(split_msg) == 3 or "," not in split_msg[2]:
+                await message.channel.send("You need to specify the item to look at, like so: '.inventory info ROW,COLUMN'\nFor example, to view the first item in your inventory, you would use '.inventory info 1,1'")
+                return
+            row, column = split_msg[2].split(",", 1)
+            # Remove whitespace
+            row = row.strip()
+            column = column.strip()
+            # Ensure row/column are valid
+            if not row.isdigit() or not column.isdigit() or int(row) > 100 or int(column) > 100:
+                await message.channel.send("You need to specify the item to look at, like so: '.inventory info ROW,COLUMN'\nFor example, to view the first item in your inventory, you would use '.inventory info 1,1'")
+                return
+            # Calculate the slot ID
+            slot_id = int(column) + ((int(row) - 1) * follower_info["inv_height"])
+            # Figure out what item to look up
+            item_instance_id = await inventory.get_item_in_slot(cursor, follower_info["id"], slot_id)
+            if item_instance_id is None:
+                await message.channel.send("That inventory slot is empty!")
+                return
+            # Get the item's information
+            item_info = await item.get_item(cursor, item_instance_id["item_id"])
+            if item_info["modifier"] is not None:
+                response = "Name: %s %s\n" % (item_info["modifier"], item_info["name"])
+            else:
+                response = "Name: %s\n" % item_info["name"]
+            # Mark item as untradeable if value is 0
+            value = str(item_info["value"])
+            if item_info["value"] == 0:
+                value += " (Untradeable)"
+            response += "Type: %s\nMarket Value: %s\n\n" % (item_info["class_type"], value)
+            response += item_info["description"]
+            await message.channel.send(response)
+            return
 
 if os.path.isfile("discord.token"):
     with open("discord.token") as file:

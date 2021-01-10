@@ -103,10 +103,20 @@ async def add_item(cursor, follower_id, item_instance_id):
 
 # Deletes the item in an inventory slot,
 # returns deletion status.
-async def delete_item(cursor, follower_id, item_id):
-    cursor.execute('''DELETE FROM "project-deity".follower_inventories
+async def delete_item(cursor, follower_id, slot_num):
+    cursor.execute('''DELETE
+                      FROM "project-deity".follower_inventories
                       WHERE follower_id = %s
                       AND slot_num = %s;''',
-                   (follower_id, item_id))
+                   (follower_id, slot_num))
     # TODO: Return False if slot was already empty
     return True
+
+
+async def get_item_in_slot(cursor, follower_id, slot_num):
+    cursor.execute('''SELECT item_id
+                      FROM "project-deity".follower_inventories
+                      WHERE follower_id = %s
+                      AND slot_num = %s;''',
+                   (follower_id, slot_num))
+    return cursor.fetchone()
