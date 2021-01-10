@@ -290,7 +290,7 @@ async def test_event(cursor):
     assert looped_login[0] is True
     assert looped_login[1] == 1
     assert looped_login[2] is True
-    assert looped_login[3] == 1
+    assert looped_login[3] == 8
     print("All tests passed!\n")
 
 

@@ -77,4 +77,4 @@ async def handle_daily_login(cursor, follower_id):
                       WHERE follower_id = %s;''',
                    (streak + 1, follower_id))
 
-    return (True, reward_row["item_id"], True, streak_day)
+    return (True, reward_row["item_id"], True, streak + 1)

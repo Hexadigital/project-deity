@@ -14,3 +14,9 @@ CREATE TABLE "project-deity".lexicon
 );
 COMMENT ON TABLE "project-deity".lexicon
     IS 'This table holds lexicon entries.';
+
+ALTER TABLE "project-deity".items
+    ADD COLUMN description text;
+
+ALTER TABLE "project-deity".player_items
+    ADD COLUMN master_item_id bigint NOT NULL DEFAULT 0;

@@ -21,6 +21,7 @@ import psycopg2.extras
 import deity
 import event
 import follower
+import inventory
 import item
 import lexicon
 
@@ -60,13 +61,13 @@ async def on_message(message):
         follower_info = await follower.get_follower_info_by_deity(cursor, deity_info["id"])
     else:
         follower_info = None
-    # Handle help request
+    # HELP COMMAND
     if message.content == ".h" or message.content.startswith('.help'):
         await message.channel.send(("Welcome to Project Deity! "
                                     "You can view the commands here:\n"
                                     "<https://github.com/Frostflake/pro"
                                     "ject-deity/wiki/Discord-Commands>"))
-    # Handle registration request
+    # REGISTER COMMAND
     elif message.content.startswith(".r ") or message.content.startswith(".reg"):
         if message.guild is None or message.guild.id != discord_guild_id:
             await message.channel.send("Registration can only be done in the official server.\nhttps://discord.gg/PaMe88dHbg")
@@ -95,7 +96,7 @@ async def on_message(message):
         await deity.create_deity(cursor, split_msg[1], discord=message.author.id)
         await message.channel.send("Successfully registered as %s!" % split_msg[1])
 
-    # Handle follower request
+    # FOLLOWER COMMAND
     elif message.content.startswith(".f ") or message.content.startswith(".follower"):
         valid_subcommands = ["create", "info"]
         # Ensure the user is registered
@@ -150,7 +151,7 @@ async def on_message(message):
         if split_msg[1] == "info":
             await message.channel.send("Follower info has not yet been implemented.")
             return
-    # Handle daily login/item event
+    # DAILY COMMAND
     elif message.content.startswith(".d ") or message.content.startswith(".daily"):
         if follower_info is None:
             await message.channel.send("You need to create a follower before you can use this command.\nTry '.follower create'.")
@@ -171,12 +172,15 @@ async def on_message(message):
             response_text += "You have received one %s!" % reward_info["name"]
         if (daily_results[3] % 7) == 0:
             response_text += " The weekly rewards will now reset."
+        response_text += "\nYour current login streak is: **%s**" % daily_results[3]
         await message.channel.send(response_text)
         return
+    # CHEATS COMMAND
     elif message.content.startswith(".cheats"):
         # Joke command?
         await message.channel.send("This command can only be used if you're accessing Project Deity via a Bitcoin ATM.")
         return
+    # LEXICON COMMAND
     elif message.content.startswith(".l ") or message.content.startswith(".lex") or message.content.startswith(".lookup"):
         split_msg = message.content.split(" ", 1)
         if len(split_msg) == 1:
@@ -194,6 +198,26 @@ async def on_message(message):
                 await message.channel.send("No definition could be found for %s." % split_msg[1])
                 return
             await message.channel.send(lexi)
+    # INVENTORY COMMAND
+    elif message.content == ".i" or message.content.startswith(".i ") or message.content.startswith(".inv"):
+        valid_subcommands = ["info"]
+        if follower_info is None:
+            await message.channel.send("You need to create a follower before you can use this command.\nTry '.follower create'.")
+            return
+        split_msg = message.content.split(" ", 2)
+        if len(split_msg) == 1:
+            inventory_render = await inventory.generate_inventory_image(cursor, deity_info["id"])
+            await message.channel.send(file=discord.File(inventory_render))
+            return
+        # Check for a valid subcommand
+        elif split_msg[1] not in valid_subcommands:
+            subcommand_str = ""
+            for sub in valid_subcommands:
+                subcommand_str += sub + ", "
+            await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+            return
+        elif split_msg[1].lower() == "info":
+            await message.channel.send("Item info coming soon!")
 
 if os.path.isfile("discord.token"):
     with open("discord.token") as file:

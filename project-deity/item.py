@@ -39,12 +39,12 @@ async def create_item_instance(cursor, item_id):
     master = cursor.fetchone()
     cursor.execute('''INSERT INTO "project-deity".player_items
                       (name, class_type, image, value, weight, rarity,
-                      modifier, json_attributes)
-                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                      modifier, json_attributes, master_item_id)
+                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                       RETURNING id;''',
                    (master["name"], master["class_type"], master["image"],
                     master["value"], master["weight"], master["rarity"],
-                    master["modifier"], master["json_attributes"]))
+                    master["modifier"], master["json_attributes"], item_id))
     return cursor.fetchone()["id"]
 
 
