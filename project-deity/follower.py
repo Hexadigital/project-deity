@@ -178,3 +178,68 @@ async def create_follower(cursor, name, class_name, deity_id):
                    (follower_id) VALUES (%s);''',
                    (follower_id, ))
     return follower_id
+
+
+# Deletes a follower and associated info.
+# Returns name, level and class_name.
+async def abandon_follower(cursor, follower_id):
+    cursor.execute('''SELECT class_id, name, level
+                      FROM "project-deity".followers
+                      WHERE id = %s;''', (follower_id, ))
+    follower_info = cursor.fetchone()
+    cursor.execute('''SELECT class_name
+                      FROM "project-deity".follower_classes
+                      WHERE id = %s;''', (follower_info["class_id"], ))
+    class_name = cursor.fetchone()["class_name"]
+    # Get list of item instances to delete
+    items_to_delete = []
+    cursor.execute('''SELECT *
+                      FROM "project-deity".follower_equipment
+                      WHERE follower_id = %s;''',
+                   (follower_id, ))
+    equips = cursor.fetchone()
+    items_to_delete.append(equips["accessory"])
+    items_to_delete.append(equips["helmet"])
+    items_to_delete.append(equips["ring"])
+    items_to_delete.append(equips["weapon"])
+    items_to_delete.append(equips["armor"])
+    items_to_delete.append(equips["shield"])
+    items_to_delete.append(equips["gloves"])
+    items_to_delete.append(equips["legs"])
+    items_to_delete.append(equips["boots"])
+    cursor.execute('''SELECT slot_num, item_id
+                      FROM "project-deity".follower_inventories
+                      WHERE follower_id = %s;''',
+                   (follower_id, ))
+    inv = cursor.fetchall()
+    for item in inv:
+        items_to_delete.append(item["item_id"])
+    # Delete item instances
+    for item in items_to_delete:
+        if item is None:
+            continue
+        cursor.execute('''DELETE
+                          FROM "project-deity".player_items
+                          WHERE id = %s;''',
+                       (item, ))
+    # Delete equipment record
+    cursor.execute('''DELETE
+                      FROM "project-deity".follower_equipment
+                      WHERE follower_id = %s;''',
+                   (follower_id, ))
+    # Delete inventory records
+    cursor.execute('''DELETE
+                      FROM "project-deity".follower_inventories
+                      WHERE follower_id = %s;''',
+                   (follower_id, ))
+    # Delete daily login records
+    cursor.execute('''DELETE
+                      FROM "project-deity".daily_login
+                      WHERE follower_id = %s;''',
+                   (follower_id, ))
+    # Finally, delete follower record
+    cursor.execute('''DELETE
+                      FROM "project-deity".followers
+                      WHERE id = %s;''',
+                   (follower_id, ))
+    return follower_info["name"], follower_info["level"], class_name

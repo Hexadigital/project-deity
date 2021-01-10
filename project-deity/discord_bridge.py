@@ -13,6 +13,7 @@
 # included in all copies or substantial portions of the Software.
 
 import discord
+import hashlib
 import json
 import os
 import psycopg2
@@ -98,7 +99,7 @@ async def on_message(message):
 
     # FOLLOWER COMMAND
     elif message.content.startswith(".f ") or message.content.startswith(".follower"):
-        valid_subcommands = ["create", "info"]
+        valid_subcommands = ["abandon", "create", "info"]
         # Ensure the user is registered
         if deity_info is None:
             await message.channel.send("You need to be registered before using this command.\nTry using .register for more details.")
@@ -147,6 +148,18 @@ async def on_message(message):
         if follower_info is None:
             await message.channel.send("You need to create a follower before you can use this command.\nTry '.follower create'.")
             return
+        if split_msg[1] == "abandon":
+            abandon_code = "goodbyemyfriend" + str(follower_info["id"])
+            abandon_code = hashlib.md5(abandon_code.encode()).hexdigest()
+            if len(split_msg) == 2:
+                response = "Are you sure you want to abandon %s? All stats, items, equipment, and progress will be lost. You cannot get them back.\n\n`If you are sure, type '.follower abandon %s' and your follower will be abandoned.`" % (follower_info["name"], abandon_code)
+            elif len(split_msg) == 3:
+                if split_msg[2] == abandon_code:
+                    name, level, class_name = await follower.abandon_follower(cursor, follower_info["id"])
+                    response = "%s, a Level %s %s, has been abandoned by %s." % (name, level, class_name, deity_info["name"])
+                else:
+                    response = "Incorrect abandonment code."
+            await message.channel.send(response)
         # Handle follower info request
         if split_msg[1] == "info":
             await message.channel.send("Follower info has not yet been implemented.")
