@@ -20,3 +20,9 @@ ALTER TABLE "project-deity".items
 
 ALTER TABLE "project-deity".player_items
     ADD COLUMN master_item_id bigint NOT NULL DEFAULT 0;
+
+ALTER TABLE "project-deity".followers
+    ADD COLUMN portrait text NOT NULL DEFAULT 'default.png';
+
+ALTER TABLE "project-deity".followers
+    ADD COLUMN title text;

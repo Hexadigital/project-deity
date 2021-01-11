@@ -12,16 +12,23 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
+from PIL import Image, ImageDraw
+
+
 async def get_follower_info(cursor, follower_id):
-    cursor.execute('''SELECT *
-                   FROM "project-deity".followers
+    cursor.execute('''SELECT f.*, fc.class_name
+                   FROM "project-deity".followers f
+                   INNER JOIN "project-deity".follower_classes fc
+                   ON f.class_id = fc.id
                    WHERE id = %s;''', (follower_id, ))
     return cursor.fetchone()
 
 
 async def get_follower_info_by_deity(cursor, deity_id):
-    cursor.execute('''SELECT *
-                   FROM "project-deity".followers
+    cursor.execute('''SELECT f.*, fc.class_name
+                   FROM "project-deity".followers f
+                   INNER JOIN "project-deity".follower_classes fc
+                   ON f.class_id = fc.id
                    WHERE deity_id = %s;''', (deity_id, ))
     return cursor.fetchone()
 
@@ -151,6 +158,122 @@ async def check_starting_class(cursor, class_name):
     if results is None:
         return False
     return True
+
+
+async def render_follower_card(cursor, follower_info, double_size=False):
+    # Create base layers
+    backdrop = Image.open("./images/templates/id.png")
+    second_layer = Image.new("RGBA", (240, 160))
+
+    # Apply portrait
+    portrait = Image.open("./images/portraits/%s" % follower_info["portrait"])
+    second_layer.paste(portrait, (8, 4, 40, 36))
+
+    # Apply name
+    name = str(follower_info["name"])
+    starting_coords = (44, 5)
+    for i in range(0, min(13, len(name))):
+        if name[i] != " ":
+            num = Image.open("./images/font2/%s.png" % name[i])
+            second_layer.paste(num, (starting_coords[0] + (7 * i), starting_coords[1], starting_coords[0] + 7 + (7 * i), starting_coords[1] + 7))
+
+    # Apply class
+    class_name = str(follower_info["class_name"])
+    starting_coords = (44, 16)
+    for i in range(0, min(13, len(class_name))):
+        if class_name[i] != " ":
+            num = Image.open("./images/font2/%s.png" % class_name[i])
+            second_layer.paste(num, (starting_coords[0] + (7 * i), starting_coords[1], starting_coords[0] + 7 + (7 * i), starting_coords[1] + 7))
+
+    # Apply title
+    if follower_info["title"] is not None:
+        title = str(follower_info["title"])
+        starting_coords = (44, 27)
+        for i in range(0, min(13, len(title))):
+            if title[i] != " ":
+                num = Image.open("./images/font2/%s.png" % title[i])
+                second_layer.paste(num, (starting_coords[0] + (7 * i), starting_coords[1], starting_coords[0] + 7 + (7 * i), starting_coords[1] + 7))
+
+    # Apply level
+    level = str(follower_info["level"])
+    starting_coords = (169, 9)
+    while len(level) < 3:
+        level = "0" + level
+    for i in range(0, 3):
+        num = Image.open("./images/font1/%s.png" % level[i])
+        second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1], starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6))
+
+    # Apply exp
+    exp = str(follower_info["exp"])
+    starting_coords = (185, 17)
+    while len(exp) < 6:
+        exp = "0" + exp
+    for i in range(0, 6):
+        num = Image.open("./images/font1/%s.png" % exp[i])
+        second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1], starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6))
+
+    # Apply required exp
+    req_exp = str(follower_info["next_level_exp"])
+    starting_coords = (185, 25)
+    while len(req_exp) < 6:
+        req_exp = "0" + req_exp
+    for i in range(0, 6):
+        num = Image.open("./images/font1/%s.png" % req_exp[i])
+        second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1], starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6))
+
+    # Apply luck, reputation, devotion
+    starting_coords = (49, 59)
+    stat_down = 0
+    for stat in ["luck", "reputation", "devotion"]:
+        stat_num = str(follower_info[stat])
+        while len(stat_num) < 3:
+            stat_num = "0" + stat_num
+        for i in range(0, 3):
+            num = Image.open("./images/font1/%s.png" % stat_num[i])
+            second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1] + stat_down, starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6 + stat_down))
+        stat_down += 8
+
+    # Apply status points
+    stat_points = str(follower_info["stat_points"])
+    starting_coords = (121, 110)
+    while len(stat_points) < 3:
+        stat_points = "0" + stat_points
+    for i in range(0, 3):
+        num = Image.open("./images/font1/%s.png" % stat_points[i])
+        second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1], starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6))
+
+    # Apply stats
+    starting_coords = (49, 118)
+    stat_down = 0
+    for stat in ["strength", "endurance", "intelligence", "agility", "willpower"]:
+        stat_num = str(follower_info[stat])
+        while len(stat_num) < 3:
+            stat_num = "0" + stat_num
+        for i in range(0, 3):
+            num = Image.open("./images/font1/%s.png" % stat_num[i])
+            second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1] + stat_down, starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6 + stat_down))
+        stat_down += 8
+
+    # Fill stat bars
+    draw = ImageDraw.Draw(second_layer)
+    bar_down = 0
+    for stat in ["strength", "endurance", "intelligence", "agility", "willpower"]:
+        draw.rectangle((79, 119 + bar_down, 79 + (follower_info[stat] - 1), 122 + bar_down), fill='#ffcc00')
+        bar_down += 8
+
+    # Draw HP, MP
+    hp_length = 79 * (follower_info["hp"] / follower_info["max_hp"])
+    draw.rectangle((40, 41, 40 + hp_length, 45), fill='#84d44c')
+
+    mp_length = 79 * (follower_info["mp"] / follower_info["max_mp"])
+    draw.rectangle((40, 49, 40 + mp_length, 53), fill='#b0def0')
+
+    # Output to file
+    final = Image.alpha_composite(backdrop, second_layer)
+    if double_size:
+        final.resize((480, 320), resample=Image.NEAREST)
+    final.save("./images/renders/followers/%s.png" % follower_info["id"])
+    return "./images/renders/followers/%s.png" % follower_info["id"]
 
 
 # Returns follower ID if created, False otherwise

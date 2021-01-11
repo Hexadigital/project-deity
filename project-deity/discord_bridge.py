@@ -90,8 +90,8 @@ async def on_message(message):
         if not split_msg[1].isalnum():
             await message.channel.send("Deity names must consist of only letters and numbers.")
             return
-        if len(split_msg[1]) > 20:
-            await message.channel.send("Deity names are capped at 20 characters.")
+        if len(split_msg[1]) > 13:
+            await message.channel.send("Deity names are capped at 13 characters.")
             return
         # Register the user
         await deity.create_deity(cursor, split_msg[1], discord=message.author.id)
@@ -130,8 +130,8 @@ async def on_message(message):
             if not all(x.isalnum() or x.isspace() for x in arguments[0]):
                 await message.channel.send("Follower names must consist of only letters, numbers and spaces.")
                 return
-            if len(arguments[0]) > 20:
-                await message.channel.send("Follower names are capped at 20 characters.")
+            if len(arguments[0]) > 13:
+                await message.channel.send("Follower names are capped at 13 characters.")
                 return
             # Is the class valid?
             if not await follower.check_starting_class(cursor, arguments[1]):
@@ -162,8 +162,8 @@ async def on_message(message):
             await message.channel.send(response)
         # Handle follower info request
         if split_msg[1] == "info":
-            await message.channel.send("Follower info has not yet been implemented.")
-            return
+            follower_card = await follower.render_follower_card(cursor, follower_info)
+            await message.channel.send(file=discord.File(follower_card))
     # DAILY COMMAND
     elif message.content.startswith(".d ") or message.content.startswith(".daily"):
         if follower_info is None:
