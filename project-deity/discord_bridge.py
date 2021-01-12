@@ -162,8 +162,17 @@ async def on_message(message):
             await message.channel.send(response)
         # Handle follower info request
         if split_msg[1] == "info":
+            if len(split_msg) == 3:
+                other_info = await follower.get_follower_info_by_name(cursor, split_msg[2])
+                if other_info is None:
+                    await message.channel.send("No follower could be found with that name.")
+                    return
+                follower_card = await follower.render_follower_card(cursor, other_info)
+                await message.channel.send(file=discord.File(follower_card))
+                return
             follower_card = await follower.render_follower_card(cursor, follower_info)
             await message.channel.send(file=discord.File(follower_card))
+            return
     # DAILY COMMAND
     elif message.content.startswith(".d ") or message.content.startswith(".daily"):
         if follower_info is None:

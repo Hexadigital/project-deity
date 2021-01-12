@@ -20,7 +20,7 @@ async def get_follower_info(cursor, follower_id):
                    FROM "project-deity".followers f
                    INNER JOIN "project-deity".follower_classes fc
                    ON f.class_id = fc.id
-                   WHERE id = %s;''', (follower_id, ))
+                   WHERE f.id = %s;''', (follower_id, ))
     return cursor.fetchone()
 
 
@@ -30,6 +30,15 @@ async def get_follower_info_by_deity(cursor, deity_id):
                    INNER JOIN "project-deity".follower_classes fc
                    ON f.class_id = fc.id
                    WHERE deity_id = %s;''', (deity_id, ))
+    return cursor.fetchone()
+
+
+async def get_follower_info_by_name(cursor, name):
+    cursor.execute('''SELECT f.*, fc.class_name
+                   FROM "project-deity".followers f
+                   INNER JOIN "project-deity".follower_classes fc
+                   ON f.class_id = fc.id
+                   WHERE name = %s;''', (name, ))
     return cursor.fetchone()
 
 
