@@ -12,6 +12,9 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
+import random
+
+
 # Returns all fields associated with an item instance.
 async def get_item(cursor, item_id):
     cursor.execute('''SELECT pi.*, i.description
@@ -32,20 +35,23 @@ async def get_master_item(cursor, item_id):
 
 
 # Creates an item instance and returns the instance ID.
+# Returns False if item is a material.
 async def create_item_instance(cursor, item_id):
     cursor.execute('''SELECT *
                       FROM "project-deity".items
                       WHERE id = %s;''',
                    (item_id, ))
     master = cursor.fetchone()
+    if master["class_type"] == "Material":
+        return False
     cursor.execute('''INSERT INTO "project-deity".player_items
-                      (name, class_type, image, value, weight, rarity,
+                      (name, class_type, image, rarity,
                       modifier, json_attributes, master_item_id)
-                      VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                      VALUES (%s, %s, %s, %s, %s, %s, %s)
                       RETURNING id;''',
                    (master["name"], master["class_type"], master["image"],
-                    master["value"], master["weight"], master["rarity"],
-                    master["modifier"], master["json_attributes"], item_id))
+                    master["rarity"], master["modifier"],
+                    master["json_attributes"], item_id))
     return cursor.fetchone()["id"]
 
 
@@ -71,10 +77,23 @@ async def get_text_description(cursor, item_id):
         article = "an"
 
     if item["modifier"] is not None:
-        description = "You are looking at %s %s %s. "
-        description += "It has a market value of %s gold, and weighs %s."
-        return description % (article, item["modifier"], item["name"],
-                              item["value"], item["weight"])
-    description = "You are looking at %s %s. \
-                   It has a market value of %s gold, and weighs %s."
-    return description % (article, item["name"], item["value"], item["weight"])
+        description = "You are looking at %s %s %s."
+        return description % (article, item["modifier"], item["name"])
+    description = "You are looking at %s %s."
+    return description % (article, item["name"])
+
+
+async def get_container_reward(cursor, item_id):
+    cursor.execute('''SELECT cr.*, i.name, i.class_type
+                      FROM "project-deity".container_roulette cr
+                      LEFT JOIN "project-deity".items i ON cr.reward_id = i.id
+                      WHERE container_id = %s;''',
+                   (item_id, ))
+    container_chances = cursor.fetchall()
+    # TODO: Take player luck into account
+    player_chance = random.randint(1, 100)
+    for chance in container_chances:
+        if player_chance >= chance["min_chance"] and player_chance <= chance["max_chance"]:
+            quantity = random.randint(chance["min_quantity"], chance["max_quantity"])
+            return (chance["reward_id"], quantity, chance["class_type"], chance["name"])
+    return (None, None, None, None)

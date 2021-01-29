@@ -25,6 +25,7 @@ import follower
 import inventory
 import item
 import lexicon
+import material
 
 client = discord.Client()
 
@@ -87,11 +88,11 @@ async def on_message(message):
             await message.channel.send("This name is already taken.")
             return
         # Make sure the name is valid
-        if not split_msg[1].isalnum():
-            await message.channel.send("Deity names must consist of only letters and numbers.")
+        if not all(x.isalnum() or x.isspace() for x in split_msg[1]):
+            await message.channel.send("Follower names must consist of only letters, numbers and spaces.")
             return
-        if len(split_msg[1]) > 13:
-            await message.channel.send("Deity names are capped at 13 characters.")
+        if len(split_msg[1]) > 20:
+            await message.channel.send("Deity names are capped at 20 characters.")
             return
         # Register the user
         await deity.create_deity(cursor, split_msg[1], discord=message.author.id)
@@ -99,7 +100,7 @@ async def on_message(message):
 
     # FOLLOWER COMMAND
     elif message.content.startswith(".f ") or message.content.startswith(".follower"):
-        valid_subcommands = ["abandon", "create", "info"]
+        valid_subcommands = ["abandon", "avatar", "create", "info"]
         # Ensure the user is registered
         if deity_info is None:
             await message.channel.send("You need to be registered before using this command.\nTry using .register for more details.")
@@ -130,8 +131,8 @@ async def on_message(message):
             if not all(x.isalnum() or x.isspace() for x in arguments[0]):
                 await message.channel.send("Follower names must consist of only letters, numbers and spaces.")
                 return
-            if len(arguments[0]) > 13:
-                await message.channel.send("Follower names are capped at 13 characters.")
+            if len(arguments[0]) > 20:
+                await message.channel.send("Follower names are capped at 20 characters.")
                 return
             # Is the class valid?
             if not await follower.check_starting_class(cursor, arguments[1]):
@@ -156,7 +157,7 @@ async def on_message(message):
             elif len(split_msg) == 3:
                 if split_msg[2] == abandon_code:
                     name, level, class_name = await follower.abandon_follower(cursor, follower_info["id"])
-                    response = "%s, a Level %s %s, has been abandoned by %s." % (name, level, class_name, deity_info["name"])
+                    response = "%s, a Level %s %s, has been abandoned by %s. Faithless, they now wander this world with no guidance or support." % (name, level, class_name, deity_info["name"])
                 else:
                     response = "Incorrect abandonment code."
             await message.channel.send(response)
@@ -173,8 +174,24 @@ async def on_message(message):
             follower_card = await follower.render_follower_card(cursor, follower_info)
             await message.channel.send(file=discord.File(follower_card))
             return
+        # Handle follower avatar
+        if split_msg[1] == "avatar":
+            avatar_list = await follower.get_avatars(cursor, deity_info["id"])
+            if len(split_msg) == 3:
+                for avatar in avatar_list:
+                    if avatar["name"].lower() == split_msg[2].strip().lower():
+                        await follower.set_avatar(cursor, follower_info["id"], avatar["filename"])
+                        await message.channel.send("Avatar updated successfully.")
+                        return
+                await message.channel.send("No avatar could be found with that name.")
+                return
+            response = "Available avatars: "
+            for avatar in avatar_list:
+                response += avatar["name"] + ", "
+            await message.channel.send(response[:-2] + "\n\nTo set your avatar, use `.follower avatar AVATAR_NAME`.")
+            return
     # DAILY COMMAND
-    elif message.content.startswith(".d ") or message.content.startswith(".daily"):
+    elif message.content == ".d" or message.content.startswith(".daily"):
         if follower_info is None:
             await message.channel.send("You need to create a follower before you can use this command.\nTry '.follower create'.")
             return
@@ -226,14 +243,15 @@ async def on_message(message):
             return
     # INVENTORY COMMAND
     elif message.content == ".i" or message.content.startswith(".i ") or message.content.startswith(".inv"):
-        valid_subcommands = ["info"]
+        valid_subcommands = ["info", "open"]
         if follower_info is None:
             await message.channel.send("You need to create a follower before you can use this command.\nTry '.follower create'.")
             return
         split_msg = message.content.split(" ", 2)
         if len(split_msg) == 1:
             inventory_render = await inventory.generate_inventory_image(cursor, follower_info["id"])
-            await message.channel.send(file=discord.File(inventory_render))
+            response = "%s has %s Gold." % (follower_info["name"], follower_info["monies"])
+            await message.channel.send(response, file=discord.File(inventory_render))
             return
         # Check for a valid subcommand
         elif split_msg[1] not in valid_subcommands:
@@ -267,14 +285,100 @@ async def on_message(message):
                 response = "Name: %s %s\n" % (item_info["modifier"], item_info["name"])
             else:
                 response = "Name: %s\n" % item_info["name"]
-            # Mark item as untradeable if value is 0
-            value = str(item_info["value"])
-            if item_info["value"] == 0:
-                value += " (Untradeable)"
-            response += "Type: %s\nMarket Value: %s\n\n" % (item_info["class_type"], value)
+            response += "Type: %s\n\n" % item_info["class_type"]
             response += item_info["description"]
             await message.channel.send(response)
             return
+        elif split_msg[1].lower() == "open":
+            if not len(split_msg) == 3 or "," not in split_msg[2]:
+                await message.channel.send("You need to specify the item to open, like so: '.inventory open ROW,COLUMN'\nFor example, to open the first item in your inventory, you would use '.inventory open 1,1'")
+                return
+            row, column = split_msg[2].split(",", 1)
+            # Remove whitespace
+            row = row.strip()
+            column = column.strip()
+            # Ensure row/column are valid
+            if not row.isdigit() or not column.isdigit() or int(row) > 100 or int(column) > 100:
+                await message.channel.send("You need to specify the item to open, like so: '.inventory open ROW,COLUMN'\nFor example, to view the first item in your inventory, you would use '.inventory open 1,1'")
+                return
+            # Calculate the slot ID
+            slot_id = int(column) + ((int(row) - 1) * follower_info["inv_height"])
+            # Figure out what item to look up
+            item_instance = await inventory.get_item_in_slot(cursor, follower_info["id"], slot_id)
+            if item_instance is None:
+                await message.channel.send("Despite your best efforts, you are unable to open something that doesn't exist.")
+                return
+            item_info = await item.get_item(cursor, item_instance["item_id"])
+            reward_id, quantity, reward_type, reward_name = await item.get_container_reward(cursor, item_info["master_item_id"])
+            if reward_id is None:
+                if item_info["modifier"] is None:
+                    await message.channel.send("You try with all of your might, but are unable to open the %s." % item_info["name"])
+                    return
+                else:
+                    await message.channel.send("You try with all of your might, but are unable to open the %s %s." % (item_info["modifier"], item_info["name"]))
+                return
+            pluralism = ""
+            if quantity > 1:
+                pluralism = "s"
+            # Is this gold?
+            if reward_id == 0:
+                await follower.add_monies(cursor, follower_info["id"], quantity)
+                if item_info["modifier"] is None:
+                    await message.channel.send("You open the %s and find %s Gold!" % (item_info["name"], quantity))
+                else:
+                    await message.channel.send("You open the %s %s and find %s Gold!" % (item_info["modifier"], item_info["name"], quantity))
+            # Is this a material?
+            elif reward_type == "Material":
+                await material.add_deity_material(cursor, deity_info["id"], reward_id, quantity)
+                if item_info["modifier"] is None:
+                    await message.channel.send("You open the %s and find %sx %s%s!" % (item_info["name"], quantity, reward_name, pluralism))
+                else:
+                    await message.channel.send("You open the %s %s and find %sx %s%s!" % (item_info["modifier"], item_info["name"], quantity, reward_name, pluralism))
+            # TODO: Is this an item?
+            else:
+                pass
+            # Delete inventory item
+            await inventory.delete_item(cursor, follower_info["id"], slot_id)
+            # Delete item instance
+            await item.delete_item(cursor, item_instance["item_id"])
+            return
+    elif message.content == ".m" or message.content.startswith(".m ") or message.content.startswith(".mat"):
+        valid_subcommands = ["categories", "view"]
+        split_msg = message.content.split(" ", 2)
+        if len(split_msg) == 1:
+            subcommand_str = ""
+            for sub in valid_subcommands:
+                subcommand_str += sub + ", "
+            await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+            return
+        # Check for a valid subcommand
+        elif split_msg[1] not in valid_subcommands:
+            subcommand_str = ""
+            for sub in valid_subcommands:
+                subcommand_str += sub + ", "
+            await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+            return
+        elif split_msg[1].lower() == "categories":
+            category_str = "Here are the material categories: "
+            for category in await material.get_valid_types(cursor):
+                category_str += category + ", "
+            await message.channel.send(category_str[:-2])
+            return
+        elif split_msg[1].lower() == "view":
+            if len(split_msg) == 2:
+                # Display all
+                material_dict = await material.get_deity_materials(cursor, deity_info["id"])
+                material_string = ""
+                for material_row in material_dict:
+                    material_string += str(material_row["quantity"]) + "x " + material_row["name"]
+                    if material_row["quantity"] > 1:
+                        material_string += "s"
+                    material_string += ", "
+                await message.channel.send("You have: " + material_string[:-2])
+                return
+            else:
+                # Display chosen category
+                return
 
 if os.path.isfile("discord.token"):
     with open("discord.token") as file:

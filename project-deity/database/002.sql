@@ -26,3 +26,58 @@ ALTER TABLE "project-deity".followers
 
 ALTER TABLE "project-deity".followers
     ADD COLUMN title text;
+
+CREATE TABLE "project-deity".deity_materials
+(
+    id bigserial,
+    deity_id bigint NOT NULL,
+    material_id bigint NOT NULL,
+    quantity bigint NOT NULL DEFAULT 0,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE "project-deity".materials
+(
+    id bigserial,
+    item_id bigint NOT NULL,
+    category text NOT NULL,
+    category_rank bigint NOT NULL,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE "project-deity".container_roulette
+(
+    id bigserial,
+    container_id bigint NOT NULL,
+    min_chance smallint NOT NULL,
+    max_chance smallint NOT NULL,
+    reward_id bigint NOT NULL,
+    quantity int NOT NULL,
+    PRIMARY KEY (id)
+);
+
+ALTER TABLE "project-deity".items DROP COLUMN value;
+
+ALTER TABLE "project-deity".items DROP COLUMN weight;
+
+ALTER TABLE "project-deity".player_items DROP COLUMN value;
+
+ALTER TABLE "project-deity".player_items DROP COLUMN weight;
+
+CREATE TABLE "project-deity".avatars
+(
+    id bigserial,
+    name text NOT NULL,
+    filename text NOT NULL,
+    deity_exclusive bigint,
+    PRIMARY KEY (id)
+);
+
+CREATE TABLE "project-deity".titles
+(
+    id bigserial,
+    title text NOT NULL,
+    description text NOT NULL,
+    title_json text,
+    PRIMARY KEY (id)
+);

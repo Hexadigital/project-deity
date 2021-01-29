@@ -128,20 +128,20 @@ async def test_item(cursor):
     print("Testing item.py...")
     print("1. Populating items table with sample data.")
     cursor.execute('''INSERT INTO "project-deity".items
-                      (name, class_type, image, value, weight, rarity,
+                      (name, class_type, image, rarity,
                       modifier, json_attributes)
                       VALUES ('Orb of Illusion', 'Weapon', 'orb.jpg',
-                      10, 10, 0, null, null);''')
+                      0, null, null);''')
     cursor.execute('''INSERT INTO "project-deity".items
-                      (name, class_type, image, value, weight, rarity,
+                      (name, class_type, image, rarity,
                       modifier, json_attributes)
                       VALUES ('Orb of Illusion', 'Weapon', 'orb.jpg',
-                      100, 10, 1, 'Bright', null);''')
+                      1, 'Bright', null);''')
     cursor.execute('''INSERT INTO "project-deity".items
-                      (name, class_type, image, value, weight, rarity,
+                      (name, class_type, image, rarity,
                       modifier, json_attributes)
                       VALUES ('Ultimate Reward', 'Shield', 'chest.jpg',
-                      1000, 100, 3, 'Veiled', null);''')
+                      3, 'Veiled', null);''')
     print("2. Creating item instances.")
     item1 = await item.create_item_instance(cursor, 1)
     item2 = await item.create_item_instance(cursor, 1)
@@ -155,8 +155,6 @@ async def test_item(cursor):
     assert item1_dict["name"] == item3_dict["name"]
     assert item1_dict["class_type"] == item3_dict["class_type"]
     assert item1_dict["image"] == item3_dict["image"]
-    assert item1_dict["value"] == 10
-    assert item3_dict["value"] == 100
     assert item3_dict["rarity"] > item1_dict["rarity"]
     assert item1_dict["modifier"] is None
     assert item3_dict["modifier"] == 'Bright'
@@ -166,7 +164,6 @@ async def test_item(cursor):
     assert "\n" not in item2_desc
     assert "a Bright Orb" in item3_desc
     assert "an Orb" in item2_desc
-    assert "10 gold" in item2_desc
     print("All tests passed!\n")
 
 

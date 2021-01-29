@@ -157,6 +157,26 @@ async def get_starting_stats(cursor, class_name):
     return results
 
 
+# Returns all available avatars
+async def get_avatars(cursor, deity_id):
+    cursor.execute('''SELECT name, filename
+                   FROM "project-deity".avatars
+                   WHERE deity_exclusive IS NULL
+                   OR deity_exclusive = %s
+                   ORDER BY name;''', (deity_id, ))
+    results = cursor.fetchall()
+    return results
+
+
+# Changes a follower's avatar
+async def set_avatar(cursor, follower_id, filename):
+    cursor.execute('''UPDATE "project-deity".followers
+                      SET portrait = %s
+                      WHERE id = %s;''',
+                   (filename, follower_id))
+    return True
+
+
 # Checks if a class is a valid starting class
 async def check_starting_class(cursor, class_name):
     cursor.execute('''SELECT tier
@@ -181,7 +201,7 @@ async def render_follower_card(cursor, follower_info, double_size=False):
     # Apply name
     name = str(follower_info["name"])
     starting_coords = (44, 5)
-    for i in range(0, min(13, len(name))):
+    for i in range(0, min(20, len(name))):
         if name[i] != " ":
             num = Image.open("./images/font2/%s.png" % name[i])
             second_layer.paste(num, (starting_coords[0] + (7 * i), starting_coords[1], starting_coords[0] + 7 + (7 * i), starting_coords[1] + 7))
@@ -205,7 +225,7 @@ async def render_follower_card(cursor, follower_info, double_size=False):
 
     # Apply level
     level = str(follower_info["level"])
-    starting_coords = (169, 9)
+    starting_coords = (169, 16)
     while len(level) < 3:
         level = "0" + level
     for i in range(0, 3):
@@ -214,7 +234,7 @@ async def render_follower_card(cursor, follower_info, double_size=False):
 
     # Apply exp
     exp = str(follower_info["exp"])
-    starting_coords = (185, 17)
+    starting_coords = (185, 24)
     while len(exp) < 6:
         exp = "0" + exp
     for i in range(0, 6):
@@ -223,7 +243,7 @@ async def render_follower_card(cursor, follower_info, double_size=False):
 
     # Apply required exp
     req_exp = str(follower_info["next_level_exp"])
-    starting_coords = (185, 25)
+    starting_coords = (185, 32)
     while len(req_exp) < 6:
         req_exp = "0" + req_exp
     for i in range(0, 6):
