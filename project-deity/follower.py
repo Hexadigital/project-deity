@@ -168,6 +168,26 @@ async def get_avatars(cursor, deity_id):
     return results
 
 
+# Changes a follower's title
+async def set_title(cursor, follower_id, title):
+    cursor.execute('''UPDATE "project-deity".followers
+                      SET title = %s
+                      WHERE id = %s;''',
+                   (title, follower_id))
+    return True
+
+
+# Returns all available titles
+async def get_titles(cursor, deity_id):
+    cursor.execute('''SELECT title
+                   FROM "project-deity".titles
+                   WHERE unlocked_for_all
+                   ORDER BY title;''')
+    # TODO: Have a way to unlock titles (via achievements?)
+    results = cursor.fetchall()
+    return results
+
+
 # Changes a follower's avatar
 async def set_avatar(cursor, follower_id, filename):
     cursor.execute('''UPDATE "project-deity".followers

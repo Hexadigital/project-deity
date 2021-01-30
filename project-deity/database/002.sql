@@ -77,7 +77,7 @@ CREATE TABLE "project-deity".titles
 (
     id bigserial,
     title text NOT NULL,
-    description text NOT NULL,
     title_json text,
+    unlocked_for_all boolean NOT NULL;
     PRIMARY KEY (id)
 );

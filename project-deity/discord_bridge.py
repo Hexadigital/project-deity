@@ -100,7 +100,7 @@ async def on_message(message):
 
     # FOLLOWER COMMAND
     elif message.content.startswith(".f ") or message.content.startswith(".follower"):
-        valid_subcommands = ["abandon", "avatar", "create", "info"]
+        valid_subcommands = ["abandon", "avatar", "create", "info", "title"]
         # Ensure the user is registered
         if deity_info is None:
             await message.channel.send("You need to be registered before using this command.\nTry using .register for more details.")
@@ -189,6 +189,22 @@ async def on_message(message):
             for avatar in avatar_list:
                 response += avatar["name"] + ", "
             await message.channel.send(response[:-2] + "\n\nTo set your avatar, use `.follower avatar AVATAR_NAME`.")
+            return
+        # Handle follower title
+        if split_msg[1] == "title":
+            title_list = await follower.get_titles(cursor, follower_info["id"])
+            if len(split_msg) == 3:
+                for title in title_list:
+                    if title["title"].lower() == split_msg[2].strip().lower():
+                        await follower.set_title(cursor, follower_info["id"], title["title"])
+                        await message.channel.send("Title updated successfully.")
+                        return
+                await message.channel.send("No title could be found with that name.")
+                return
+            response = "Available titles: "
+            for title in title_list:
+                response += title["title"] + ", "
+            await message.channel.send(response[:-2] + "\n\nTo set your title, use `.follower title TITLE_NAME`.")
             return
     # DAILY COMMAND
     elif message.content == ".d" or message.content.startswith(".daily"):
