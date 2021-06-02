@@ -359,7 +359,7 @@ async def handle_inventory(message, deity_info, follower_info):
 
 
 async def handle_message_from_deity(message, deity_info):
-    body = message.content + " "
+    body = message.content.lower() + " "
     follower_info = await follower.get_follower_info_by_deity(cursor, deity_info["id"])
     if body.startswith(".h ") or body.startswith(".help "):
         await message.channel.send("Welcome to Project Deity! You can view the commands here:\n<https://github.com/Frostflake/project-deity/wiki/Discord-Commands>")
@@ -378,7 +378,7 @@ async def handle_message_from_deity(message, deity_info):
 
 
 async def handle_message_from_nondeity(message):
-    body = message.content + " "
+    body = message.content.lower() + " "
     if body.startswith(".h ") or body.startswith(".help "):
         await message.channel.send("Welcome to Project Deity! You can view the commands here:\n<https://github.com/Frostflake/project-deity/wiki/Discord-Commands>")
     elif body.startswith(".r ") or body.startswith(".register "):
