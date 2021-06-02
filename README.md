@@ -13,9 +13,9 @@ The gameplay revolves around occasional "divine messages" from you, as well as a
 ### This sounds too complicated...
 As a deity, your follower(s) believe that any excess materials or items they obtain are worthy of tribute. You have direct access to their inventories and can use things as you see fit, but your follower will also craft, use, buy, sell and loot items. Taking away their potions may result in their death, and a gift you bestow may end up rusting away in a pawn shop. On the other hand, you may find it better to take away explosives before your champion uses it for a party trick, and a divine blade might be just what your devotee needs to slaughter every single skeleton in the dungeon.
 
-### How do the other dieties come into play?
-After the last spiritual war brought humanity close to extinction, all of the dieties agreed to sign a non-aggression pact. At least, directly.
-While some dieties may be happy to help along your champion or exchange items with you, others may disagree with your values and use their champions as assassins of sorts... assuming their followers listen to them.
+### How do the other deities come into play?
+After the last spiritual war brought humanity close to extinction, all of the deities agreed to sign a non-aggression pact. At least, directly.
+While some deities may be happy to help along your champion or exchange items with you, others may disagree with your values and use their champions as assassins of sorts... assuming their followers listen to them.
 
 ### How do I play or use this?
 At the moment, this is more of a template for an engine than anything. Please hold tight.
