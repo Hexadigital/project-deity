@@ -12,6 +12,7 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
+from datetime import date, datetime, timedelta, time
 import discord
 import hashlib
 import json
@@ -213,7 +214,17 @@ async def on_message(message):
             return
         daily_results = await event.handle_daily_login(cursor, follower_info["id"])
         if not daily_results[0]:
-            await message.channel.send("You already claimed your daily for today! It will reset at midnight EST.")
+            total_seconds = (datetime.combine(date.today() + timedelta(1), time()) - datetime.now()).seconds
+            m, s = divmod(total_seconds, 60)
+            h, m = divmod(m, 60)
+            time_remaining = ""
+            if s != 0:
+                time_remaining = str(s) + "s"
+            if m != 0:
+                time_remaining = str(m) + "m" + time_remaining
+            if h != 0:
+                time_remaining = str(h) + "h" + time_remaining
+            await message.channel.send("You already claimed your daily for today! It will reset in %s." % time_remaining)
             return
         if not daily_results[2]:
             await message.channel.send("Your inventory is full! Clean it out before claiming your daily.")
@@ -233,8 +244,12 @@ async def on_message(message):
     # CHEATS COMMAND
     elif message.content.startswith(".cheats"):
         # Joke command?
-        await message.channel.send("This command can only be used if you're accessing Project Deity via a Bitcoin ATM.")
-        return
+        if message.author.id != 145389925208948738:
+            await message.channel.send("This command can only be used if you're accessing Project Deity via a Bitcoin ATM.")
+            return
+        else:
+            await message.channel.send("Cheat codes have been activated for %s." % follower_info["name"])
+            return
     # LEXICON COMMAND
     elif message.content.startswith(".l ") or message.content.startswith(".lex") or message.content.startswith(".lookup"):
         split_msg = message.content.split(" ", 1)

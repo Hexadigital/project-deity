@@ -13,6 +13,7 @@
 # included in all copies or substantial portions of the Software.
 
 from PIL import Image, ImageDraw
+from datetime import datetime
 
 
 async def get_follower_info(cursor, follower_id):
@@ -316,6 +317,21 @@ async def render_follower_card(cursor, follower_info, double_size=False):
 
     mp_length = 79 * (follower_info["mp"] / follower_info["max_mp"])
     draw.rectangle((40, 49, 40 + mp_length, 53), fill='#b0def0')
+
+    # Draw energy
+    cursor.execute('''SELECT * FROM "project-deity".daily_login
+                   WHERE follower_id = %s;''',
+                   (follower_info["id"], ))
+    activity = cursor.fetchone()
+    last_daily = datetime.date(activity["last_login"])
+    todays_date = datetime.date(datetime.now())
+    delta = todays_date - last_daily
+    if delta.days == 0:
+        draw.rectangle((66, 84, 69, 87), fill='#ffcc00')
+    if delta.days <= 1:
+        draw.rectangle((58, 84, 61, 87), fill='#ffcc00')
+    if delta.days <= 2:
+        draw.rectangle((50, 84, 53, 87), fill='#ffcc00')
 
     # Output to file
     final = Image.alpha_composite(backdrop, second_layer)
