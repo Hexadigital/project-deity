@@ -273,23 +273,38 @@ async def handle_inventory(message, deity_info, follower_info):
     elif split_msg[1].lower() == "equip":
         await message.channel.send("Equipping items is not supported at this time.")
     elif split_msg[1].lower() == "use":
-        await message.channel.send("Using items is not supported at this time.")
-    elif split_msg[1].lower() == "info":
-        if not len(split_msg) == 3 or "," not in split_msg[2]:
-            await message.channel.send("You need to specify the item to look at, like so: '.inventory info ROW,COLUMN'\nFor example, to view the first item in your inventory, you would use '.inventory info 1,1'")
+        if not len(split_msg) == 3:
+            await message.channel.send("You need to specify the item to look at, like so: '.inventory info SLOT'\nFor example, to view the first item in your inventory, you would use '.inventory info 1'")
             return
-        row, column = split_msg[2].split(",", 1)
-        # Remove whitespace
-        row = row.strip()
-        column = column.strip()
+        requested_slot = split_msg[2]
         # Ensure row/column are valid
-        if not row.isdigit() or not column.isdigit() or int(row) > 100 or int(column) > 100:
-            await message.channel.send("You need to specify the item to look at, like so: '.inventory info ROW,COLUMN'\nFor example, to view the first item in your inventory, you would use '.inventory info 1,1'")
+        if not requested_slot.isdigit() or int(requested_slot) > 250 or int(requested_slot) <= 0:
+            await message.channel.send("That inventory slot is empty!")
             return
-        # Calculate the slot ID
-        slot_id = int(column) + ((int(row) - 1) * follower_info["inv_height"])
         # Figure out what item to look up
-        item_instance_id = await inventory.get_item_in_slot(cursor, follower_info["id"], slot_id)
+        item_instance_id = await inventory.get_item_in_slot(cursor, follower_info["id"], requested_slot)
+        if item_instance_id is None:
+            await message.channel.send("That inventory slot is empty!")
+            return
+        # Get the item's information
+        item_info = await item.get_item(cursor, item_instance_id["item_id"])
+        if item_info["class_type"] in ["Weapon", "Accessory", "Helmet", "Ring", "Armor", "Shield", "Gloves", "Legs", "Boots"]:
+            await message.channel.send("This item cannot be used. Maybe you meant to equip it?")
+        elif item_info["class_type"] in ["Container"]:
+            await message.channel.send("This item cannot be used. Maybe you meant to open it?")
+        else:
+            await message.channel.send("Using items is not supported at this time.")
+    elif split_msg[1].lower() == "info":
+        if not len(split_msg) == 3:
+            await message.channel.send("You need to specify the item to look at, like so: '.inventory info SLOT'\nFor example, to view the first item in your inventory, you would use '.inventory info 1'")
+            return
+        requested_slot = split_msg[2]
+        # Ensure row/column are valid
+        if not requested_slot.isdigit() or int(requested_slot) > 250 or int(requested_slot) <= 0:
+            await message.channel.send("That inventory slot is empty!")
+            return
+        # Figure out what item to look up
+        item_instance_id = await inventory.get_item_in_slot(cursor, follower_info["id"], requested_slot)
         if item_instance_id is None:
             await message.channel.send("That inventory slot is empty!")
             return
@@ -304,21 +319,16 @@ async def handle_inventory(message, deity_info, follower_info):
         await message.channel.send(response)
         return
     elif split_msg[1].lower() == "open":
-        if not len(split_msg) == 3 or "," not in split_msg[2]:
+        if not len(split_msg) == 3:
             await message.channel.send("You need to specify the item to open, like so: '.inventory open ROW,COLUMN'\nFor example, to open the first item in your inventory, you would use '.inventory open 1,1'")
             return
-        row, column = split_msg[2].split(",", 1)
-        # Remove whitespace
-        row = row.strip()
-        column = column.strip()
+        requested_slot = split_msg[2]
         # Ensure row/column are valid
-        if not row.isdigit() or not column.isdigit() or int(row) > 100 or int(column) > 100:
-            await message.channel.send("You need to specify the item to open, like so: '.inventory open ROW,COLUMN'\nFor example, to view the first item in your inventory, you would use '.inventory open 1,1'")
+        if not requested_slot.isdigit() or int(requested_slot) > 250 or int(requested_slot) <= 0:
+            await message.channel.send("That inventory slot is empty!")
             return
-        # Calculate the slot ID
-        slot_id = int(column) + ((int(row) - 1) * follower_info["inv_height"])
         # Figure out what item to look up
-        item_instance = await inventory.get_item_in_slot(cursor, follower_info["id"], slot_id)
+        item_instance = await inventory.get_item_in_slot(cursor, follower_info["id"], requested_slot)
         if item_instance is None:
             await message.channel.send("Despite your best efforts, you are unable to open something that doesn't exist.")
             return
@@ -352,7 +362,7 @@ async def handle_inventory(message, deity_info, follower_info):
         else:
             pass
         # Delete inventory item
-        await inventory.delete_item(cursor, follower_info["id"], slot_id)
+        await inventory.delete_item(cursor, follower_info["id"], requested_slot)
         # Delete item instance
         await item.delete_item(cursor, item_instance["item_id"])
         return
@@ -385,6 +395,25 @@ async def handle_message_from_nondeity(message):
         await handle_registration(message)
     elif body.startswith(".l ") or body.startswith(".lexicon "):
         await handle_lexicon(message)
+
+
+async def handle_admin_command(message):
+    split_msg = [x.strip() for x in message.content.split("::")]
+    if split_msg[1] == "additem":
+        if len(split_msg) != 4:
+            await message.channel.send(".admin::additem::follower_id::item_id")
+            return
+        item_instance_id = await item.create_item_instance(cursor, int(split_msg[3]))
+        if not item_instance_id:
+            await message.channel.send("Item instance generation failed.")
+            return
+        add_item_success = await inventory.add_item(cursor, int(split_msg[2]), item_instance_id)
+        if not add_item_success:
+            # Clean up item instance
+            await item.delete_item(cursor, item_instance_id)
+            await message.channel.send("Item could not be added to inventory.")
+        else:
+            await message.channel.send("Item added to inventory.")
 
 
 '''
@@ -432,6 +461,8 @@ async def on_message(message):
     # Skip self messages and non-commands
     if message.author.id == client.user.id or not message.content.startswith("."):
         return
+    if message.content.startswith(".admin") and message.author.id == config["discord"]["admin"]:
+        await handle_admin_command(message)
     # Get deity and follower info
     deity_info = await deity.get_deity_by_discord(cursor, message.author.id)
     if deity_info is not None:
