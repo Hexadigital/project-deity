@@ -113,6 +113,7 @@ async def delete_item(cursor, follower_id, slot_num):
     return True
 
 
+# Returns the ID of an item in a slot
 async def get_item_in_slot(cursor, follower_id, slot_num):
     cursor.execute('''SELECT item_id
                       FROM "project-deity".follower_inventories

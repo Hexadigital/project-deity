@@ -84,10 +84,10 @@ async def get_text_description(cursor, item_id):
 
 
 async def get_container_reward(cursor, item_id):
-    cursor.execute('''SELECT cr.*, i.name, i.class_type
+    cursor.execute('''SELECT cr.*, m.name
                       FROM "project-deity".container_roulette cr
-                      LEFT JOIN "project-deity".items i ON cr.reward_id = i.id
-                      WHERE container_id = %s;''',
+                      LEFT JOIN "project-deity".materials m ON cr.reward_id = m.id
+                      WHERE cr.container_id = %s;''',
                    (item_id, ))
     container_chances = cursor.fetchall()
     # TODO: Take player luck into account
@@ -95,5 +95,5 @@ async def get_container_reward(cursor, item_id):
     for chance in container_chances:
         if player_chance >= chance["min_chance"] and player_chance <= chance["max_chance"]:
             quantity = random.randint(chance["min_quantity"], chance["max_quantity"])
-            return (chance["reward_id"], quantity, chance["class_type"], chance["name"])
+            return (chance["reward_id"], quantity, chance["reward_type"], chance["name"])
     return (None, None, None, None)

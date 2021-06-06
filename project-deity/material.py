@@ -22,27 +22,19 @@ async def get_valid_types(cursor):
 async def get_deity_materials(cursor, deity_id, category=None):
     cursor.execute('''SELECT dm.material_id, dm.quantity,
                       m.item_id, m.category, m.category_rank,
-                      i.image, i.rarity, i.name
+                      m.image, m.rarity, m.name
                       FROM "project-deity".deity_materials dm
                       LEFT JOIN "project-deity".materials m
                       ON dm.material_id = m.id
-                      LEFT JOIN "project-deity".items i
-                      ON m.item_id = i.id
                       WHERE dm.deity_id = %s
                       AND dm.quantity != 0
-                      ORDER BY i.name;''',
+                      ORDER BY m.name;''',
                    (deity_id, ))
     material_dict = cursor.fetchall()
     return material_dict
 
 
-async def add_deity_material(cursor, deity_id, item_id, quantity):
-    # Convert item_id to material_id
-    cursor.execute('''SELECT *
-                      FROM "project-deity".materials
-                      WHERE item_id = %s;''',
-                   (item_id, ))
-    material_id = cursor.fetchone()["id"]
+async def add_deity_material(cursor, deity_id, material_id, quantity):
     # Check if the material already exists for this deity
     cursor.execute('''SELECT *
                       FROM "project-deity".deity_materials

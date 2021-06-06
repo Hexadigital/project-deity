@@ -173,19 +173,20 @@ async def handle_follower(message, deity_info, follower_info):
 
 
 async def handle_stats(message, deity_info, follower_info):
-    # valid_subcommands = []
-    split_msg = message.content.split(" ", 2)
+    valid_subcommands = []
+    split_msg = message.content.split(" ", 1)
     if follower_info is None:
         await message.channel.send("You need a follower before you can use this command.")
     elif len(split_msg) == 1:
         follower_card = await follower.render_follower_card(cursor, follower_info)
         await message.channel.send(file=discord.File(follower_card))
-    '''other_info = await follower.get_follower_info_by_name(cursor, split_msg[2])
-    if other_info is None:
-        await message.channel.send("No follower could be found with that name.")
-        return
-    follower_card = await follower.render_follower_card(cursor, other_info)
-    await message.channel.send(file=discord.File(follower_card))'''
+    elif len(split_msg) == 2 and split_msg[1] not in valid_subcommands:
+        other_info = await follower.get_follower_info_by_name(cursor, split_msg[1])
+        if other_info is None:
+            await message.channel.send("No follower could be found with that name.")
+            return
+        follower_card = await follower.render_follower_card(cursor, other_info)
+        await message.channel.send(file=discord.File(follower_card))
 
 
 async def handle_daily(message, deity_info, follower_info):
