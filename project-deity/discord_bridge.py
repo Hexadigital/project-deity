@@ -20,6 +20,7 @@ import os
 import psycopg2
 import psycopg2.extras
 
+import crafting
 import deity
 import event
 import follower
@@ -253,6 +254,35 @@ async def handle_lexicon(message):
         await message.channel.send(lexi)
 
 
+async def handle_craft(message, deity_info, follower_info):
+    valid_subcommands = ["list"]
+    if follower_info is None:
+        await message.channel.send("You need a follower before you can use this command.")
+        return
+    split_msg = [x.strip() for x in message.content.split(" ", 2)]
+    if len(split_msg) == 1 or split_msg[1] not in valid_subcommands:
+        subcommand_str = ""
+        for sub in valid_subcommands:
+            subcommand_str += sub + ", "
+        await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+    elif split_msg[1].lower() == "list":
+        recipes = await crafting.get_recipes(cursor, deity_info["id"])
+        recipe_list = "```"
+        for recipe in recipes:
+            if recipe["craftable"]:
+                recipe_list += "\n\U00002714 "
+            else:
+                recipe_list += "\n\U00002716 "
+            recipe_list += str(recipe["output_quantity"]) + "x " + recipe["output_name"] + " "
+            recipe_list += "(" + str(recipe["input1_needed"]) + " " + recipe["input1_name"]
+            if recipe["input2_name"] is not None:
+                recipe_list += ", " + str(recipe["input2_needed"]) + " " + recipe["input2_name"]
+            if recipe["input3_name"] is not None:
+                recipe_list += ", " + str(recipe["input3_needed"]) + " " + recipe["input3_name"]
+            recipe_list += ")"
+        await message.channel.send(recipe_list + "```")
+
+
 async def handle_inventory(message, deity_info, follower_info):
     valid_subcommands = ["equip", "info", "open", "use"]
     if follower_info is None:
@@ -386,6 +416,8 @@ async def handle_message_from_deity(message, deity_info):
         await handle_lexicon(message)
     elif body.startswith(".i ") or body.startswith(".inventory "):
         await handle_inventory(message, deity_info, follower_info)
+    elif body.startswith(".c ") or body.startswith(".craft "):
+        await handle_craft(message, deity_info, follower_info)
 
 
 async def handle_message_from_nondeity(message):
