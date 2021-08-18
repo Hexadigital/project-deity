@@ -54,7 +54,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
-    current_version = discord.Game(name="Project Deity v0.2a")
+    current_version = discord.Game(name="Project Deity v0.1b")
     await client.change_presence(activity=current_version)
 
 
@@ -280,7 +280,7 @@ async def handle_craft(message, deity_info, follower_info):
         if not recipe["craftable"]:
             await message.channel.send("You do not have the materials needed to craft this!")
             return
-        #await message.channel.send(str(dict(recipe)))
+        # await message.channel.send(str(dict(recipe)))
         if recipe["output_material"] is None:
             await message.channel.send("Item crafting is currently disabled. Try crafting a material.")
             return
@@ -302,7 +302,7 @@ async def handle_craft(message, deity_info, follower_info):
     elif split_msg[1].lower() == "list":
         recipes = await crafting.get_recipes(cursor, deity_info["id"])
         page = 1
-        total_pages = int(math.ceil(len(recipes)/10))
+        total_pages = int(math.ceil(len(recipes) / 10))
         if len(split_msg) == 3 and split_msg[2].isnumeric():
             page = int(split_msg[2])
             if page > total_pages:
@@ -445,6 +445,7 @@ async def handle_inventory(message, deity_info, follower_info):
         await item.delete_item(cursor, item_instance["item_id"])
         return
 
+
 async def handle_material(message, deity_info, follower_info):
     valid_subcommands = ["categories", "view"]
     split_msg = message.content.split(" ", 2)
@@ -535,7 +536,7 @@ async def handle_admin_command(message):
         else:
             await message.channel.send("Item added to inventory.")
     if split_msg[1] == "custom":
-        #channel = client.get_channel(763139386983710730)
+        # channel = client.get_channel(763139386983710730)
         pass
 
 

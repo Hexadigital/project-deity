@@ -47,6 +47,7 @@ async def get_recipes(cursor, deity_id):
     recipes = cursor.fetchall()
     return recipes
 
+
 async def get_recipe_by_name(cursor, deity_id, craft_name):
     cursor.execute('''SELECT cr.id,
                     (CASE WHEN io.name IS NULL THEN m.name ELSE io.name END) as output_name, cr.output_item, cr.output_material, cr.output_quantity,
