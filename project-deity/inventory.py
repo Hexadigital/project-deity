@@ -48,9 +48,10 @@ async def generate_inventory_image(cursor, follower_id):
     inv_width = results["inv_width"]
     inv_height = results["inv_height"]
     inv_capacity = inv_width * inv_height
-    cursor.execute('''SELECT fi.slot_num, fi.item_id, pi.image, pi.rarity
+    cursor.execute('''SELECT fi.slot_num, fi.item_id, i.image, pi.rarity
                       FROM "project-deity".follower_inventories fi
                       INNER JOIN "project-deity".player_items pi ON fi.item_id = pi.id
+                      INNER JOIN "project-deity".items i ON pi.master_item_id = i.id
                       WHERE fi.follower_id = %s
                       ORDER BY slot_num ASC;''',
                    (follower_id, ))
@@ -94,6 +95,7 @@ async def add_item(cursor, follower_id, item_instance_id):
     item_slot = await find_free_slot(cursor, follower_id)
     if item_slot is None:
         return False
+    print("Adding item instance %s to follower %s slot %s" % (item_instance_id, follower_id, item_slot))
     cursor.execute('''INSERT INTO "project-deity".follower_inventories
                       (follower_id, slot_num, item_id)
                       VALUES (%s, %s, %s);''',
@@ -113,10 +115,11 @@ async def delete_item(cursor, follower_id, slot_num):
     return True
 
 
-# Returns the ID of an item in a slot
+# Returns the item in a slot
 async def get_item_in_slot(cursor, follower_id, slot_num):
-    cursor.execute('''SELECT item_id
-                      FROM "project-deity".follower_inventories
+    cursor.execute('''SELECT fi.item_id, pi.*
+                      FROM "project-deity".follower_inventories fi
+                      LEFT JOIN "project-deity".player_items pi ON fi.item_id = pi.id
                       WHERE follower_id = %s
                       AND slot_num = %s;''',
                    (follower_id, slot_num))

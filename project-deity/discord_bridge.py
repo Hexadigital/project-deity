@@ -271,27 +271,46 @@ async def handle_craft(message, deity_info, follower_info):
             await message.channel.send("You need to specify the item to craft, such as '.c craft Wooden Sword'.")
             return
         if "," in split_msg[2]:
-            await message.channel.send("Crafting using modifiers is currently disabled.")
-            return
-        recipe = await crafting.get_recipe_by_name(cursor, deity_info["id"], split_msg[2])
+            requested_item, requested_modifier = [x.strip() for x in split_msg[2].split(',', 1)]
+        else:
+            requested_item = split_msg[2].strip()
+            requested_modifier = None
+        recipe = await crafting.get_recipe_by_name(cursor, deity_info["id"], requested_item)
         if recipe is None:
             await message.channel.send("This does not appear to be a valid crafting recipe.")
             return
         if not recipe["craftable"]:
             await message.channel.send("You do not have the materials needed to craft this!")
             return
-        # await message.channel.send(str(dict(recipe)))
+        # Item Recipe
         if recipe["output_material"] is None:
-            await message.channel.send("Item crafting is currently disabled. Try crafting a material.")
-            return
+            if requested_modifier is not None:
+                await message.channel.send("Crafting using modifiers is currently disabled.")
+                return
+            modifier = None
+            slot_id = await inventory.find_free_slot(cursor, follower_info["id"])
+            if slot_id is None:
+                await message.channel.send("You do not have enough inventory space to craft this!")
+                return
+            att_dict = {
+                'Crafted By':deity_info["id"],
+                'Crafted On':date.today().strftime("%Y-%m-%d")
+            }
+            instance_id = await item.create_item_instance(cursor, recipe["output_item"], att_dict=att_dict, modifier=modifier)
+            await inventory.add_item(cursor, follower_info["id"], instance_id)
+        # Material Recipe
+        else:
+            if requested_modifier is not None:
+                await message.channel.send("Modifiers cannot be used to craft materials.")
+                return
+            # Add resulting material
+            await material.add_deity_material(cursor, deity_info["id"], recipe["output_material"], recipe["output_quantity"])
         # Subtract materials
         await material.update_deity_material_quantity(cursor, deity_info["id"], recipe["input1_item"], recipe["input1_available"] - recipe["input1_needed"])
         if recipe["input2_item"] is not None:
             await material.update_deity_material_quantity(cursor, deity_info["id"], recipe["input2_item"], recipe["input2_available"] - recipe["input2_needed"])
         if recipe["input3_item"] is not None:
             await material.update_deity_material_quantity(cursor, deity_info["id"], recipe["input3_item"], recipe["input3_available"] - recipe["input3_needed"])
-        # Add resulting material
-        await material.add_deity_material(cursor, deity_info["id"], recipe["output_material"], recipe["output_quantity"])
         await message.channel.send("You successfully crafted %sx %s!" % (recipe["output_quantity"], recipe["output_name"]))
     elif split_msg[1].lower() == "help":
         help_text = "Crafting is a system by which you can combine materials into new materials or into items.\n"
@@ -382,18 +401,12 @@ async def handle_inventory(message, deity_info, follower_info):
             await message.channel.send("That inventory slot is empty!")
             return
         # Figure out what item to look up
-        item_instance_id = await inventory.get_item_in_slot(cursor, follower_info["id"], requested_slot)
-        if item_instance_id is None:
+        item_instance = await inventory.get_item_in_slot(cursor, follower_info["id"], requested_slot)
+        if item_instance is None:
             await message.channel.send("That inventory slot is empty!")
             return
         # Get the item's information
-        item_info = await item.get_item(cursor, item_instance_id["item_id"])
-        if item_info["modifier"] is not None:
-            response = "Name: %s %s\n" % (item_info["modifier"], item_info["name"])
-        else:
-            response = "Name: %s\n" % item_info["name"]
-        response += "Type: %s\n\n" % item_info["class_type"]
-        response += item_info["description"]
+        response = await item.get_text_description(cursor, item_instance)
         await message.channel.send(response)
         return
     elif split_msg[1].lower() == "open":

@@ -37,6 +37,7 @@ async def get_deity_materials(cursor, deity_id, category=None):
 
 
 async def add_deity_material(cursor, deity_id, material_id, quantity):
+    print("Adding %s of material %s to deity %s" % (quantity, material_id, deity_id))
     # Check if the material already exists for this deity
     cursor.execute('''SELECT *
                       FROM "project-deity".deity_materials
@@ -63,7 +64,7 @@ async def add_deity_material(cursor, deity_id, material_id, quantity):
 
 
 async def update_deity_material_quantity(cursor, deity_id, material_id, quantity):
-    print("Setting deity %s material %s to %s" % (deity_id, material_id, quantity))
+    print("Setting deity %s material %s quantity to %s" % (deity_id, material_id, quantity))
     cursor.execute('''UPDATE "project-deity".deity_materials
                       SET quantity = %s
                       WHERE deity_id = %s

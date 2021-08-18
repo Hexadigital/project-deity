@@ -40,6 +40,15 @@ async def get_deity_by_discord(cursor, discord):
     return results
 
 
+async def get_deity_by_id(cursor, deity_id):
+    cursor.execute('''SELECT id, name
+                      FROM "project-deity".deities
+                      WHERE id = %s;''',
+                   (deity_id, ))
+    results = cursor.fetchone()
+    return results
+
+
 async def check_if_name_taken(cursor, name):
     cursor.execute('''SELECT id
                       FROM "project-deity".deities
