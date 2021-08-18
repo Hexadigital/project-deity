@@ -13,15 +13,17 @@
 # included in all copies or substantial portions of the Software.
 
 async def get_valid_types(cursor):
-    cursor.execute('''SELECT category
-                      FROM "project-deity".materials;''')
+    cursor.execute('''SELECT DISTINCT category
+                      FROM "project-deity".materials
+                      WHERE category IS NOT NULL
+                      ORDER BY category;''')
     types = [x["category"] for x in cursor.fetchall()]
-    return sorted(list(set(types)))
+    return types
 
 
 async def get_deity_materials(cursor, deity_id, category=None):
     cursor.execute('''SELECT dm.material_id, dm.quantity,
-                      m.item_id, m.category, m.category_rank,
+                      m.category, m.category_rank,
                       m.image, m.rarity, m.name
                       FROM "project-deity".deity_materials dm
                       LEFT JOIN "project-deity".materials m
@@ -58,3 +60,13 @@ async def add_deity_material(cursor, deity_id, material_id, quantity):
                           VALUES (%s, %s, %s);''',
                        (deity_id, material_id, quantity))
         return quantity
+
+
+async def update_deity_material_quantity(cursor, deity_id, material_id, quantity):
+    print("Setting deity %s material %s to %s" % (deity_id, material_id, quantity))
+    cursor.execute('''UPDATE "project-deity".deity_materials
+                      SET quantity = %s
+                      WHERE deity_id = %s
+                      AND material_id = %s;''',
+                   (quantity, deity_id, material_id))
+    return quantity

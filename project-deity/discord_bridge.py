@@ -16,6 +16,7 @@ from datetime import date, datetime, timedelta, time
 import discord
 import hashlib
 import json
+import math
 import os
 import psycopg2
 import psycopg2.extras
@@ -53,7 +54,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
-    current_version = discord.Game(name="Project Deity v0.1a")
+    current_version = discord.Game(name="Project Deity v0.2a")
     await client.change_presence(activity=current_version)
 
 
@@ -255,7 +256,7 @@ async def handle_lexicon(message):
 
 
 async def handle_craft(message, deity_info, follower_info):
-    valid_subcommands = ["list"]
+    valid_subcommands = ["craft", "help", "list"]
     if follower_info is None:
         await message.channel.send("You need a follower before you can use this command.")
         return
@@ -265,8 +266,54 @@ async def handle_craft(message, deity_info, follower_info):
         for sub in valid_subcommands:
             subcommand_str += sub + ", "
         await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+    elif split_msg[1].lower() == "craft":
+        if len(split_msg) != 3:
+            await message.channel.send("You need to specify the item to craft, such as '.c craft Wooden Sword'.")
+            return
+        if "," in split_msg[2]:
+            await message.channel.send("Crafting using modifiers is currently disabled.")
+            return
+        recipe = await crafting.get_recipe_by_name(cursor, deity_info["id"], split_msg[2])
+        if recipe is None:
+            await message.channel.send("This does not appear to be a valid crafting recipe.")
+            return
+        if not recipe["craftable"]:
+            await message.channel.send("You do not have the materials needed to craft this!")
+            return
+        #await message.channel.send(str(dict(recipe)))
+        if recipe["output_material"] is None:
+            await message.channel.send("Item crafting is currently disabled. Try crafting a material.")
+            return
+        # Subtract materials
+        await material.update_deity_material_quantity(cursor, deity_info["id"], recipe["input1_item"], recipe["input1_available"] - recipe["input1_needed"])
+        if recipe["input2_item"] is not None:
+            await material.update_deity_material_quantity(cursor, deity_info["id"], recipe["input2_item"], recipe["input2_available"] - recipe["input2_needed"])
+        if recipe["input3_item"] is not None:
+            await material.update_deity_material_quantity(cursor, deity_info["id"], recipe["input3_item"], recipe["input3_available"] - recipe["input3_needed"])
+        # Add resulting material
+        await material.add_deity_material(cursor, deity_info["id"], recipe["output_material"], recipe["output_quantity"])
+        await message.channel.send("You successfully crafted %sx %s!" % (recipe["output_quantity"], recipe["output_name"]))
+    elif split_msg[1].lower() == "help":
+        help_text = "Crafting is a system by which you can combine materials into new materials or into items.\n"
+        help_text += "You can view the list of crafting recipes via '.c list', with an optional page number such as '.c list 2'.\n\n"
+        help_text += "To craft an item, just type '.c craft item name', such as '.c craft Wooden Sword'.\n"
+        help_text += "To add a modifier, add the modifier material with a comma, such as '.c craft Wooden Sword, Small Fang'."
+        await message.channel.send(help_text)
     elif split_msg[1].lower() == "list":
         recipes = await crafting.get_recipes(cursor, deity_info["id"])
+        page = 1
+        total_pages = int(math.ceil(len(recipes)/10))
+        if len(split_msg) == 3 and split_msg[2].isnumeric():
+            page = int(split_msg[2])
+            if page > total_pages:
+                await message.channel.send("This page does not exist.")
+                return
+        start_point = (page - 1) * 10
+        end_point = int(page) * 10
+        if end_point > len(recipes):
+            recipes = recipes[start_point:]
+        else:
+            recipes = recipes[start_point:end_point]
         recipe_list = "```"
         for recipe in recipes:
             if recipe["craftable"]:
@@ -280,7 +327,7 @@ async def handle_craft(message, deity_info, follower_info):
             if recipe["input3_name"] is not None:
                 recipe_list += ", " + str(recipe["input3_needed"]) + " " + recipe["input3_name"]
             recipe_list += ")"
-        await message.channel.send(recipe_list + "```")
+        await message.channel.send(recipe_list + "\n\nPage " + str(page) + " of " + str(total_pages) + "```")
 
 
 async def handle_inventory(message, deity_info, follower_info):
@@ -398,6 +445,44 @@ async def handle_inventory(message, deity_info, follower_info):
         await item.delete_item(cursor, item_instance["item_id"])
         return
 
+async def handle_material(message, deity_info, follower_info):
+    valid_subcommands = ["categories", "view"]
+    split_msg = message.content.split(" ", 2)
+    if len(split_msg) == 1:
+        subcommand_str = ""
+        for sub in valid_subcommands:
+            subcommand_str += sub + ", "
+        await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+        return
+    # Check for a valid subcommand
+    elif split_msg[1] not in valid_subcommands:
+        subcommand_str = ""
+        for sub in valid_subcommands:
+            subcommand_str += sub + ", "
+        await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+        return
+    elif split_msg[1].lower() == "categories":
+        category_str = "Here are the material categories: "
+        for category in await material.get_valid_types(cursor):
+            category_str += category + ", "
+        await message.channel.send(category_str[:-2])
+        return
+    elif split_msg[1].lower() == "view":
+        if len(split_msg) == 2:
+            # Display all
+            material_dict = await material.get_deity_materials(cursor, deity_info["id"])
+            material_string = ""
+            for material_row in material_dict:
+                material_string += str(material_row["quantity"]) + "x " + material_row["name"]
+                if material_row["quantity"] > 1:
+                    material_string += "s"
+                material_string += ", "
+            await message.channel.send("You have: " + material_string[:-2])
+            return
+        else:
+            # Display chosen category
+            return
+
 
 async def handle_message_from_deity(message, deity_info):
     body = message.content.lower() + " "
@@ -418,6 +503,8 @@ async def handle_message_from_deity(message, deity_info):
         await handle_inventory(message, deity_info, follower_info)
     elif body.startswith(".c ") or body.startswith(".craft "):
         await handle_craft(message, deity_info, follower_info)
+    elif body.startswith(".m ") or body.startswith(".mat "):
+        await handle_material(message, deity_info, follower_info)
 
 
 async def handle_message_from_nondeity(message):
@@ -447,46 +534,9 @@ async def handle_admin_command(message):
             await message.channel.send("Item could not be added to inventory.")
         else:
             await message.channel.send("Item added to inventory.")
-
-
-'''
-    elif message.content == ".m" or message.content.startswith(".m ") or message.content.startswith(".mat"):
-        valid_subcommands = ["categories", "view"]
-        split_msg = message.content.split(" ", 2)
-        if len(split_msg) == 1:
-            subcommand_str = ""
-            for sub in valid_subcommands:
-                subcommand_str += sub + ", "
-            await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
-            return
-        # Check for a valid subcommand
-        elif split_msg[1] not in valid_subcommands:
-            subcommand_str = ""
-            for sub in valid_subcommands:
-                subcommand_str += sub + ", "
-            await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
-            return
-        elif split_msg[1].lower() == "categories":
-            category_str = "Here are the material categories: "
-            for category in await material.get_valid_types(cursor):
-                category_str += category + ", "
-            await message.channel.send(category_str[:-2])
-            return
-        elif split_msg[1].lower() == "view":
-            if len(split_msg) == 2:
-                # Display all
-                material_dict = await material.get_deity_materials(cursor, deity_info["id"])
-                material_string = ""
-                for material_row in material_dict:
-                    material_string += str(material_row["quantity"]) + "x " + material_row["name"]
-                    if material_row["quantity"] > 1:
-                        material_string += "s"
-                    material_string += ", "
-                await message.channel.send("You have: " + material_string[:-2])
-                return
-            else:
-                # Display chosen category
-                return'''
+    if split_msg[1] == "custom":
+        #channel = client.get_channel(763139386983710730)
+        pass
 
 
 @client.event

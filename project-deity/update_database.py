@@ -29,7 +29,7 @@ if connection.is_connected():
     db_Info = connection.get_server_info()
     print("Connected to SQL Server version", db_Info)
     cursor = connection.cursor(buffered=True)
-    cursor.execute("SELECT MAX(version) as version FROM `db_versioning` ;")
+    cursor.execute("SELECT MAX(version) as version FROM `db_versioning`;")
     record = cursor.fetchone()
     # Convert current version to int
     if record[0] is None:
