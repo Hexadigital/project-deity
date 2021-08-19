@@ -20,7 +20,7 @@ While some deities may be happy to help along your champion or exchange items wi
 ### How do I play or use this?
 At the moment, this is more of a template for an engine than anything. Please hold tight.
 If you want to try out the early alpha, here is a Discord link:
-[![Discord Invite](https://img.shields.io/badge/community-join-4BC424.svg)](https://discord.gg/PaMe88dHbg)
+![Discord](https://img.shields.io/discord/763138107310473227?color=7289da&label=Discord&logo=Discord&logoColor=white)
 
 ### Inspirations
 This project was inspired by IdleRPG, Progress Quest, Old School RuneScape, Mabinogi, and a few other MMOs.
