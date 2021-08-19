@@ -60,7 +60,8 @@ async def get_recipe_by_name(cursor, deity_id, craft_name):
                         AND (m3.name IS NULL or dm3.quantity >= cr.input3_quantity)
                         THEN true
                         ELSE false
-                     END) as craftable
+                     END) as craftable,
+                    io.class_type as item_class
                     FROM "project-deity".crafting_recipes cr
                     LEFT JOIN "project-deity".items io ON io.id = cr.output_item
                     LEFT JOIN "project-deity".materials m on m.id = cr.output_material

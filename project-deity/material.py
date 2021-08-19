@@ -71,3 +71,14 @@ async def update_deity_material_quantity(cursor, deity_id, material_id, quantity
                       AND material_id = %s;''',
                    (quantity, deity_id, material_id))
     return quantity
+
+
+async def get_deity_material_quantity_by_name(cursor, deity_id, material_name):
+    cursor.execute('''SELECT dm.material_id, dm.quantity, m.name,
+                      m.rarity, m.modifier_json
+                      FROM "project-deity".deity_materials dm
+                      LEFT JOIN "project-deity".materials m ON dm.material_id = m.id
+                      WHERE dm.deity_id = %s
+                      AND UPPER(m.name) = UPPER(%s)''',
+                   (deity_id, material_name))
+    return cursor.fetchone()

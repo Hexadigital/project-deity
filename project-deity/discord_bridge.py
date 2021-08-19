@@ -272,9 +272,13 @@ async def handle_craft(message, deity_info, follower_info):
             return
         if "," in split_msg[2]:
             requested_item, requested_modifier = [x.strip() for x in split_msg[2].split(',', 1)]
+            modifier = await material.get_deity_material_quantity_by_name(cursor, deity_info["id"], requested_modifier)
+            if modifier is None or modifier["quantity"] < 1:
+                await message.channel.send("You do not have enough of that modifier!")
+                return
         else:
             requested_item = split_msg[2].strip()
-            requested_modifier = None
+            modifier = None
         recipe = await crafting.get_recipe_by_name(cursor, deity_info["id"], requested_item)
         if recipe is None:
             await message.channel.send("This does not appear to be a valid crafting recipe.")
@@ -282,25 +286,28 @@ async def handle_craft(message, deity_info, follower_info):
         if not recipe["craftable"]:
             await message.channel.send("You do not have the materials needed to craft this!")
             return
+        if recipe["output_material"] is None and modifier is not None and recipe["item_class"] not in json.loads(modifier["modifier_json"]).keys():
+            await message.channel.send("This modifier cannot be applied to a %s!" % recipe["item_class"])
+            return
         # Item Recipe
         if recipe["output_material"] is None:
-            if requested_modifier is not None:
-                await message.channel.send("Crafting using modifiers is currently disabled.")
-                return
-            modifier = None
             slot_id = await inventory.find_free_slot(cursor, follower_info["id"])
             if slot_id is None:
                 await message.channel.send("You do not have enough inventory space to craft this!")
                 return
             att_dict = {
-                'Crafted By':deity_info["id"],
-                'Crafted On':date.today().strftime("%Y-%m-%d")
+                'Crafted By': deity_info["id"],
+                'Crafted On': date.today().strftime("%Y-%m-%d")
             }
-            instance_id = await item.create_item_instance(cursor, recipe["output_item"], att_dict=att_dict, modifier=modifier)
+            if modifier is None:
+                instance_id = await item.create_item_instance(cursor, recipe["output_item"], att_dict=att_dict)
+            else:
+                instance_id, modifier_name = await item.create_item_instance(cursor, recipe["output_item"], att_dict=att_dict, modifier_material=modifier)
+                await material.update_deity_material_quantity(cursor, deity_info["id"], modifier["material_id"], modifier["quantity"] - 1)
             await inventory.add_item(cursor, follower_info["id"], instance_id)
         # Material Recipe
         else:
-            if requested_modifier is not None:
+            if modifier is not None:
                 await message.channel.send("Modifiers cannot be used to craft materials.")
                 return
             # Add resulting material
@@ -311,7 +318,10 @@ async def handle_craft(message, deity_info, follower_info):
             await material.update_deity_material_quantity(cursor, deity_info["id"], recipe["input2_item"], recipe["input2_available"] - recipe["input2_needed"])
         if recipe["input3_item"] is not None:
             await material.update_deity_material_quantity(cursor, deity_info["id"], recipe["input3_item"], recipe["input3_available"] - recipe["input3_needed"])
-        await message.channel.send("You successfully crafted %sx %s!" % (recipe["output_quantity"], recipe["output_name"]))
+        if modifier is not None:
+            await message.channel.send("You successfully crafted %sx %s %s!" % (recipe["output_quantity"], modifier_name, recipe["output_name"]))
+        else:
+            await message.channel.send("You successfully crafted %sx %s!" % (recipe["output_quantity"], recipe["output_name"]))
     elif split_msg[1].lower() == "help":
         help_text = "Crafting is a system by which you can combine materials into new materials or into items.\n"
         help_text += "You can view the list of crafting recipes via '.c list', with an optional page number such as '.c list 2'.\n\n"

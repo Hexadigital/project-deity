@@ -37,22 +37,39 @@ async def get_master_item(cursor, item_id):
 
 
 # Creates an item instance and returns the instance ID.
-async def create_item_instance(cursor, item_id, att_dict={}, modifier=None):
+async def create_item_instance(cursor, item_id, att_dict={}, modifier_material=None):
     cursor.execute('''SELECT *
                       FROM "project-deity".items
                       WHERE id = %s;''',
                    (item_id, ))
     master = cursor.fetchone()
     # Apply custom attributes if they exist
-    json_dict = json.loads(master["json_attributes"])
+    json_dict = {}
+    if master["json_attributes"] is not None:
+        json_dict = json.loads(master["json_attributes"])
     for key in att_dict.keys():
         json_dict[key] = att_dict[key]
-    json_str = json.dumps(json_dict, sort_keys=True, indent=4)
     # Apply modifier if it exists
-    if modifier is None:
+    if modifier_material is None:
         modifier_str = master["modifier"]
     else:
-        modifier_str = modifier
+        # Calculate modifier effects
+        modifier_dict = json.loads(modifier_material["modifier_json"])
+        modifier_str = modifier_dict[master["class_type"]]["Modifier"]
+        amount_sign = modifier_dict[master["class_type"]]["Min Amount"][0]
+        if "%" in modifier_dict[master["class_type"]]["Min Amount"]:
+            percentage = "%"
+        else:
+            percentage = ""
+        min_amount = int(modifier_dict[master["class_type"]]["Min Amount"][1:].replace("%", ""))
+        max_amount = int(modifier_dict[master["class_type"]]["Max Amount"][1:].replace("%", ""))
+        rand_amount = random.randint(min_amount, max_amount)
+        json_dict["Modifier"] = {
+            "Material": modifier_material["name"],
+            "Amount": amount_sign + str(rand_amount) + percentage,
+            "Effects": modifier_dict[master["class_type"]]["Effects"]
+        }
+    json_str = json.dumps(json_dict, sort_keys=True, indent=4)
     cursor.execute('''INSERT INTO "project-deity".player_items
                       (name, class_type, rarity,
                       modifier, json_attributes, master_item_id)
@@ -61,8 +78,12 @@ async def create_item_instance(cursor, item_id, att_dict={}, modifier=None):
                    (master["name"], master["class_type"], master["rarity"],
                     modifier_str, json_str, item_id))
     instance_id = cursor.fetchone()["id"]
-    print("Created item instance %s (%s)" % (instance_id, master["name"]))
-    return instance_id
+    if modifier_material is None:
+        print("Created item instance %s (%s)" % (instance_id, master["name"]))
+        return instance_id
+    else:
+        print("Created item instance %s (%s %s)" % (instance_id, modifier_str, master["name"]))
+        return instance_id, modifier_str
 
 
 # Deletes an item instance and returns the success value.
@@ -82,12 +103,21 @@ async def get_text_description(cursor, item_instance):
     else:
         description = "Name: %s\n" % master_item["name"]
     description += "Type: %s\n\n" % master_item["class_type"]
-    description += master_item["description"]
-    json_dict = json.loads(item_instance["json_attributes"])
-    if "Crafted By" in json_dict.keys():
-        deity_dict = await deity.get_deity_by_id(cursor, json_dict["Crafted By"])
-        description += "\nCrafted by %s on %s." % (deity_dict["name"], json_dict["Crafted On"])
-    return description
+    description += master_item["description"] + "\n\n"
+    if item_instance["json_attributes"] is not None:
+        json_dict = json.loads(item_instance["json_attributes"])
+        if "Base" in json_dict.keys():
+            description += "Base Stats: "
+            for base_stat in json_dict["Base"].keys():
+                description += json_dict["Base"][base_stat] + " " + base_stat + ", "
+            description = description[:-2]
+        if "Modifier" in json_dict.keys():
+            description += "\n" + json_dict["Modifier"]["Material"] + ": "
+            description += json_dict["Modifier"]["Amount"] + " " + json_dict["Modifier"]["Effects"]
+        if "Crafted By" in json_dict.keys():
+            deity_dict = await deity.get_deity_by_id(cursor, json_dict["Crafted By"])
+            description += "\nCrafted by %s on %s." % (deity_dict["name"], json_dict["Crafted On"])
+    return description.strip()
 
 
 async def get_container_reward(cursor, item_id):
