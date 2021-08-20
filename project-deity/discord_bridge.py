@@ -470,42 +470,43 @@ async def handle_inventory(message, deity_info, follower_info):
 
 
 async def handle_material(message, deity_info, follower_info):
-    valid_subcommands = ["categories", "view"]
+    valid_subcommands = ["categories", "list"]
     split_msg = message.content.split(" ", 2)
     if len(split_msg) == 1:
         subcommand_str = ""
         for sub in valid_subcommands:
             subcommand_str += sub + ", "
         await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
-        return
     # Check for a valid subcommand
     elif split_msg[1] not in valid_subcommands:
         subcommand_str = ""
         for sub in valid_subcommands:
             subcommand_str += sub + ", "
         await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
-        return
     elif split_msg[1].lower() == "categories":
         category_str = "Here are the material categories: "
         for category in await material.get_valid_types(cursor):
             category_str += category + ", "
         await message.channel.send(category_str[:-2])
-        return
-    elif split_msg[1].lower() == "view":
-        if len(split_msg) == 2:
-            # Display all
-            material_dict = await material.get_deity_materials(cursor, deity_info["id"])
-            material_string = ""
-            for material_row in material_dict:
-                material_string += str(material_row["quantity"]) + "x " + material_row["name"]
-                if material_row["quantity"] > 1:
-                    material_string += "s"
-                material_string += ", "
-            await message.channel.send("You have: " + material_string[:-2])
-            return
+    elif split_msg[1].lower() == "list":
+        material_list = await material.get_deity_materials(cursor, deity_info["id"])
+        page = 1
+        total_pages = int(math.ceil(len(material_list) / 10))
+        if len(split_msg) == 3 and split_msg[2].isnumeric():
+            page = int(split_msg[2])
+            if page > total_pages:
+                await message.channel.send("This page does not exist.")
+                return
+        start_point = (page - 1) * 10
+        end_point = int(page) * 10
+        if end_point > len(material_list):
+            material_list = material_list[start_point:]
         else:
-            # Display chosen category
-            return
+            material_list = material_list[start_point:end_point]
+        material_string = "```You have:\n"
+        for material_row in material_list:
+            material_string += "%s x%s\n" % (material_row["name"], material_row["quantity"])
+        await message.channel.send(material_string + "\nPage " + str(page) + " of " + str(total_pages) + "```")
 
 
 async def handle_message_from_deity(message, deity_info):
