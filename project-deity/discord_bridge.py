@@ -96,7 +96,7 @@ async def handle_follower_creation(message, deity_info, follower_info, split_msg
         await message.channel.send("Follower names are capped at 20 characters.")
     # Check class validity
     elif not await follower.check_starting_class(cursor, arguments[1]):
-        await message.channel.send("%s is not a valid starting class. You can use '.lexicon Starting Classes' for more info." % arguments[1])
+        await message.channel.send("%s is not a valid starting class. You can use '.lexicon classes' for more info." % arguments[1])
     else:
         # Create follower
         follower_id = await follower.create_follower(cursor, arguments[0], arguments[1], deity_info["id"])
@@ -182,14 +182,14 @@ async def handle_stats(message, deity_info, follower_info):
         await message.channel.send("You need a follower before you can use this command.")
     elif len(split_msg) == 1:
         follower_card = await follower.render_follower_card(cursor, follower_info)
-        await message.channel.send(file=discord.File(follower_card))
+        await message.channel.send("Current Location: %s" % follower_info["current_location"], file=discord.File(follower_card))
     elif len(split_msg) == 2 and split_msg[1] not in valid_subcommands:
         other_info = await follower.get_follower_info_by_name(cursor, split_msg[1])
         if other_info is None:
             await message.channel.send("No follower could be found with that name.")
             return
         follower_card = await follower.render_follower_card(cursor, other_info)
-        await message.channel.send(file=discord.File(follower_card))
+        await message.channel.send("Current Location: %s" % other_info["current_location"], file=discord.File(follower_card))
 
 
 async def handle_daily(message, deity_info, follower_info):
