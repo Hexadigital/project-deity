@@ -17,7 +17,7 @@ from datetime import datetime
 
 
 async def get_follower_info(cursor, follower_id):
-    cursor.execute('''SELECT f.*, fc.class_name, l.name as current_location
+    cursor.execute('''SELECT f.*, fc.class_name, l.name as current_location_name
                    FROM "project-deity".followers f
                    INNER JOIN "project-deity".follower_classes fc
                    ON f.class_id = fc.id
@@ -28,7 +28,7 @@ async def get_follower_info(cursor, follower_id):
 
 
 async def get_follower_info_by_deity(cursor, deity_id):
-    cursor.execute('''SELECT f.*, fc.class_name, l.name as current_location
+    cursor.execute('''SELECT f.*, fc.class_name, l.name as current_location_name
                    FROM "project-deity".followers f
                    INNER JOIN "project-deity".follower_classes fc
                    ON f.class_id = fc.id
@@ -39,13 +39,13 @@ async def get_follower_info_by_deity(cursor, deity_id):
 
 
 async def get_follower_info_by_name(cursor, name):
-    cursor.execute('''SELECT f.*, fc.class_name, l.name as current_location
+    cursor.execute('''SELECT f.*, fc.class_name, l.name as current_location_name
                    FROM "project-deity".followers f
                    INNER JOIN "project-deity".follower_classes fc
                    ON f.class_id = fc.id
                    LEFT JOIN "project-deity".locations l
                    ON f.current_location_id = l.id
-                   WHERE name = %s;''', (name, ))
+                   WHERE f.name = %s;''', (name, ))
     return cursor.fetchone()
 
 

@@ -30,6 +30,7 @@ import inventory
 import item
 import lexicon
 import material
+import world
 
 client = discord.Client()
 
@@ -182,14 +183,14 @@ async def handle_stats(message, deity_info, follower_info):
         await message.channel.send("You need a follower before you can use this command.")
     elif len(split_msg) == 1:
         follower_card = await follower.render_follower_card(cursor, follower_info)
-        await message.channel.send("Current Location: %s" % follower_info["current_location"], file=discord.File(follower_card))
+        await message.channel.send("Current Status: Idle in %s" % follower_info["current_location_name"], file=discord.File(follower_card))
     elif len(split_msg) == 2 and split_msg[1] not in valid_subcommands:
         other_info = await follower.get_follower_info_by_name(cursor, split_msg[1])
         if other_info is None:
             await message.channel.send("No follower could be found with that name.")
             return
         follower_card = await follower.render_follower_card(cursor, other_info)
-        await message.channel.send("Current Location: %s" % other_info["current_location"], file=discord.File(follower_card))
+        await message.channel.send("Current Status: Idle in %s" % other_info["current_location_name"], file=discord.File(follower_card))
 
 
 async def handle_daily(message, deity_info, follower_info):
@@ -254,6 +255,16 @@ async def handle_lexicon(message):
             await message.channel.send("No definition could be found for %s." % split_msg[1])
             return
         await message.channel.send(lexi)
+
+
+async def handle_map(message, deity_info, follower_info):
+    valid_subcommands = []
+    split_msg = message.content.split(" ", 1)
+    if len(split_msg) == 1:
+        loc = await world.render_follower_location(cursor, follower_info)
+        await message.channel.send("Current Location: %s" % follower_info["current_location_name"], file=discord.File(loc))
+    elif split_msg[1].lower() not in valid_subcommands:
+        await message.channel.send("There are no subcommands: try using just .map.")
 
 
 async def handle_craft(message, deity_info, follower_info):
@@ -599,6 +610,8 @@ async def handle_message_from_deity(message, deity_info):
         await handle_craft(message, deity_info, follower_info)
     elif body.startswith(".m ") or body.startswith(".mat "):
         await handle_material(message, deity_info, follower_info)
+    elif body.startswith(".map "):
+        await handle_map(message, deity_info, follower_info)
     elif body.startswith(".e ") or body.startswith(".equip "):
         await handle_equipment(message, deity_info, follower_info)
 
@@ -631,7 +644,8 @@ async def handle_admin_command(message):
         else:
             await message.channel.send("Item added to inventory.")
     if split_msg[1] == "custom":
-        # channel = client.get_channel(763139386983710730)
+        world_render = await world.render_world_location(6, 3693, 450)
+        await message.channel.send('', file=discord.File(world_render))
         pass
 
 
