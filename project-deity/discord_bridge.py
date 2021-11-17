@@ -55,7 +55,7 @@ async def on_ready():
     print(client.user.name)
     print(client.user.id)
     print('------')
-    current_version = discord.Game(name="Project Deity v0.1b")
+    current_version = discord.Game(name="Project Deity v0.1c")
     await client.change_presence(activity=current_version)
 
 
