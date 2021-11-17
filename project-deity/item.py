@@ -19,7 +19,7 @@ import random
 
 # Returns all fields associated with an item instance.
 async def get_item(cursor, item_id):
-    cursor.execute('''SELECT pi.*, i.description
+    cursor.execute('''SELECT pi.*, i.description, i.image
                       FROM "project-deity".player_items pi
                       INNER JOIN "project-deity".items i ON pi.master_item_id = i.id
                       WHERE pi.id = %s;''',
@@ -109,11 +109,21 @@ async def get_text_description(cursor, item_instance):
         if "Base" in json_dict.keys():
             description += "Base Stats: "
             for base_stat in json_dict["Base"].keys():
-                description += json_dict["Base"][base_stat] + " " + base_stat + ", "
+                if int(json_dict["Base"][base_stat]) > 0:
+                    description += "+"
+                description += json_dict["Base"][base_stat]
+                if "%" in base_stat:
+                    description += "%"
+                description += " " + base_stat.replace("%", "") + ", "
             description = description[:-2]
         if "Modifier" in json_dict.keys():
             description += "\n" + json_dict["Modifier"]["Material"] + ": "
-            description += json_dict["Modifier"]["Amount"] + " " + json_dict["Modifier"]["Effects"]
+            if int(json_dict["Modifier"]["Amount"]) > 0:
+                description += "+"
+            description += json_dict["Modifier"]["Amount"]
+            if "%" in json_dict["Modifier"]["Effects"]:
+                description += "%"
+            description += " " + json_dict["Modifier"]["Effects"].replace("%", "")
         if "Crafted By" in json_dict.keys():
             deity_dict = await deity.get_deity_by_id(cursor, json_dict["Crafted By"])
             description += "\nCrafted by %s on %s." % (deity_dict["name"], json_dict["Crafted On"])
