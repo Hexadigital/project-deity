@@ -23,6 +23,7 @@ import psycopg2.extras
 
 import crafting
 import deity
+import equipment
 import event
 import follower
 import inventory
@@ -378,7 +379,25 @@ async def handle_inventory(message, deity_info, follower_info):
         await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
         return
     elif split_msg[1].lower() == "equip":
-        await message.channel.send("Equipping items is not supported at this time.")
+        if not len(split_msg) == 3:
+            await message.channel.send("You need to specify the item to equip, like so: '.inventory equip SLOT'\nFor example, to equip the first item in your inventory, you would use '.inventory equip 1'")
+            return
+        requested_slot = split_msg[2]
+        # Ensure row/column are valid
+        if not requested_slot.isdigit() or int(requested_slot) > 250 or int(requested_slot) <= 0:
+            await message.channel.send("That inventory slot is empty!")
+            return
+        # Figure out what item to look up
+        item_instance_id = await inventory.get_item_in_slot(cursor, follower_info["id"], requested_slot)
+        if item_instance_id is None:
+            await message.channel.send("That inventory slot is empty!")
+            return
+        equipped_item = await equipment.equip_item(cursor, follower_info["id"], requested_slot)
+        if equipped_item == 'ERROR_NOT_EQUIPPABLE':
+            await message.channel.send("That item can't be equipped!")
+            return
+        else:
+            await message.channel.send("Equipped the %s!" % equipped_item)
     elif split_msg[1].lower() == "use":
         if not len(split_msg) == 3:
             await message.channel.send("You need to specify the item to look at, like so: '.inventory info SLOT'\nFor example, to view the first item in your inventory, you would use '.inventory info 1'")
@@ -509,6 +528,56 @@ async def handle_material(message, deity_info, follower_info):
         await message.channel.send(material_string + "\nPage " + str(page) + " of " + str(total_pages) + "```")
 
 
+async def handle_equipment(message, deity_info, follower_info):
+    valid_subcommands = ["stats", "unequip"]
+    split_msg = message.content.split(" ", 2)
+    if len(split_msg) == 1:
+        equipment_render = await equipment.generate_equipment_image(cursor, follower_info["id"])
+        await message.channel.send('', file=discord.File(equipment_render))
+    # Check for a valid subcommand
+    elif split_msg[1] not in valid_subcommands:
+        subcommand_str = ""
+        for sub in valid_subcommands:
+            subcommand_str += sub + ", "
+        await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+    elif split_msg[1].lower() == "stats":
+        equip_stats = await equipment.get_stats(cursor, follower_info["id"])
+        response = "Your equipped items are providing the following bonuses.\n"
+        for stat in sorted(equip_stats.keys()):
+            # Don't show buffs that cancelled each other out
+            if equip_stats[stat] == 0:
+                continue
+            response += stat.replace("%", "") + ": "
+            if equip_stats[stat] >= 0:
+                response += "+"
+            response += str(equip_stats[stat])
+            if "%" in stat:
+                response += "%"
+            response += "\n"
+        await message.channel.send(response)
+    elif split_msg[1].lower() == "unequip":
+        if len(split_msg) != 3:
+            await message.channel.send("You need to specify the type of item to unequip, such as Helmet, Weapon, or Boots.\nYou can also use a number from 1 to 9 for the slot.")
+            return
+        if not split_msg[2].isnumeric() and split_msg[2].lower() not in ['accessory', 'helmet', 'ring', 'weapon', 'armor', 'shield', 'gloves', 'legs', 'boots']:
+            await message.channel.send("You need to specify the type of item to unequip, such as Helmet, Weapon, or Boots.\nYou can also use a number from 1 to 9 for the slot.")
+            return
+        if split_msg[2].isnumeric() and (int(split_msg[2]) > 9 or int(split_msg[2]) < 1):
+            await message.channel.send("You need to specify the type of item to unequip, such as Helmet, Weapon, or Boots.\nYou can also use a number from 1 to 9 for the slot.")
+            return
+        if split_msg[2].isnumeric():
+            slot_name = ['accessory', 'helmet', 'ring', 'weapon', 'armor', 'shield', 'gloves', 'legs', 'boots'][int(split_msg[2]) - 1]
+        else:
+            slot_name = split_msg[2].lower()
+        unequip_result = await equipment.unequip_item(cursor, follower_info["id"], slot_name)
+        if unequip_result == "ERROR_SLOT_EMPTY":
+            await message.channel.send("That equipment slot is empty!")
+        elif unequip_result == "ERROR_NO_INV_SPACE":
+            await message.channel.send("You don't have enough inventory space to unequip anything!")
+        else:
+            await message.channel.send("Unequipped the %s!" % unequip_result)
+
+
 async def handle_message_from_deity(message, deity_info):
     body = message.content.lower() + " "
     follower_info = await follower.get_follower_info_by_deity(cursor, deity_info["id"])
@@ -530,6 +599,8 @@ async def handle_message_from_deity(message, deity_info):
         await handle_craft(message, deity_info, follower_info)
     elif body.startswith(".m ") or body.startswith(".mat "):
         await handle_material(message, deity_info, follower_info)
+    elif body.startswith(".e ") or body.startswith(".equip "):
+        await handle_equipment(message, deity_info, follower_info)
 
 
 async def handle_message_from_nondeity(message):
