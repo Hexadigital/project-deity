@@ -15,7 +15,7 @@
 from PIL import Image
 
 
-async def render_world_location(follower_id, x, y):
+async def render_world_location(x, y, out_path):
     world = Image.open("images/maps/world.png")
     marker = Image.open("images/maps/marker.png")
     left = x - 75
@@ -27,14 +27,43 @@ async def render_world_location(follower_id, x, y):
     marker_layer.paste(marker, (75 - 8, 75 - 16))
     final = Image.alpha_composite(world_layer, marker_layer)
     final = final.resize((300, 300), resample=Image.NEAREST)
-    final.save("./images/renders/world/%s.png" % follower_id)
-    return "./images/renders/world/%s.png" % follower_id
+    final.save(out_path)
 
 
 async def render_follower_location(cursor, follower_info):
+    x, y = await get_follower_location(cursor, follower_info)
+    await render_world_location(x, y, "./images/renders/world/%s.png" % follower_info['id'])
+    return "./images/renders/world/%s.png" % follower_info['id']
+
+
+# Returns the x, y coordinates for the follower
+async def get_follower_location(cursor, follower_info):
     cursor.execute('''SELECT * FROM "project-deity".locations
                       WHERE id = %s;''',
                    (follower_info['current_location_id'], ))
     location = cursor.fetchone()
-    rendered = await render_world_location(follower_info['id'], location['x'], location['y'])
-    return rendered
+    return location['x'], location['y']
+
+
+# Returns the five closest locations to the follower
+async def get_nearby_locations(cursor, follower_info):
+    current_x, current_y = await get_follower_location(cursor, follower_info)
+    cursor.execute('''SELECT * FROM "project-deity".locations
+                      WHERE id != %s;''',
+                   (follower_info['current_location_id'], ))
+    locations = cursor.fetchall()
+    distances = []
+    for location in locations:
+        distance = get_distance(current_x, current_y, location["x"], location["y"])
+        distances.append({"name": location['name'], "distance": distance})
+    distances = sorted(distances, key=lambda i: i['distance'])
+    if len(distances) > 5:
+        distances = distances[:5]
+    return distances
+
+
+# Returns the number of pixels/minutes between two sets of coordinates
+def get_distance(x1, y1, x2, y2):
+    x3 = abs(x2 - x1)
+    y3 = abs(y2 - y1)
+    return x3 + y3

@@ -258,13 +258,23 @@ async def handle_lexicon(message):
 
 
 async def handle_map(message, deity_info, follower_info):
-    valid_subcommands = []
+    valid_subcommands = ["nearby"]
     split_msg = message.content.split(" ", 1)
     if len(split_msg) == 1:
         loc = await world.render_follower_location(cursor, follower_info)
         await message.channel.send("Current Location: %s" % follower_info["current_location_name"], file=discord.File(loc))
     elif split_msg[1].lower() not in valid_subcommands:
-        await message.channel.send("There are no subcommands: try using just .map.")
+        subcommand_str = ""
+        for sub in valid_subcommands:
+            subcommand_str += sub + ", "
+        await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+    elif split_msg[1].lower() == "nearby":
+        nearby = await world.get_nearby_locations(cursor, follower_info)
+        response = "The locations closest to you are: "
+        for location in nearby:
+            response += location["name"] + ", "
+        response = response[:-2]
+        await message.channel.send(response)
 
 
 async def handle_craft(message, deity_info, follower_info):
@@ -626,7 +636,8 @@ async def handle_message_from_nondeity(message):
         await handle_lexicon(message)
 
 
-async def handle_admin_command(message):
+async def handle_admin_command(message, deity_info):
+    follower_info = await follower.get_follower_info_by_deity(cursor, deity_info["id"])
     split_msg = [x.strip() for x in message.content.split("::")]
     if split_msg[1] == "additem":
         if len(split_msg) != 4:
@@ -644,8 +655,8 @@ async def handle_admin_command(message):
         else:
             await message.channel.send("Item added to inventory.")
     if split_msg[1] == "custom":
-        world_render = await world.render_world_location(6, 3693, 450)
-        await message.channel.send('', file=discord.File(world_render))
+        nearby = await world.get_nearby_locations(cursor, follower_info)
+        await message.channel.send(str(nearby))
         pass
 
 
@@ -654,10 +665,10 @@ async def on_message(message):
     # Skip self messages and non-commands
     if message.author.id == client.user.id or not message.content.startswith("."):
         return
-    if message.content.startswith(".admin") and message.author.id == config["discord"]["admin"]:
-        await handle_admin_command(message)
     # Get deity and follower info
     deity_info = await deity.get_deity_by_discord(cursor, message.author.id)
+    if message.content.startswith(".admin") and message.author.id == config["discord"]["admin"]:
+        await handle_admin_command(message, deity_info)
     if deity_info is not None:
         await handle_message_from_deity(message, deity_info)
     else:

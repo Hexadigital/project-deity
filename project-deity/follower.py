@@ -101,7 +101,8 @@ async def add_exp(cursor, follower_id, amount):
                       SET exp = %s
                       WHERE id = %s;''',
                    (new_exp, follower_id))
-    return await try_level_up(cursor, follower_id)
+    level_up_result = await try_level_up(cursor, follower_id)
+    return level_up_result
 
 
 # Adds the given amount of currency.

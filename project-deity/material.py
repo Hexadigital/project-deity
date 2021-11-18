@@ -23,7 +23,7 @@ async def get_valid_types(cursor):
 
 async def get_deity_materials(cursor, deity_id, category=None):
     cursor.execute('''SELECT dm.material_id, dm.quantity,
-                      m.category, m.category_rank,
+                      m.category,
                       m.image, m.rarity, m.name
                       FROM "project-deity".deity_materials dm
                       LEFT JOIN "project-deity".materials m
