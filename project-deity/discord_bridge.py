@@ -183,14 +183,14 @@ async def handle_stats(message, deity_info, follower_info):
         await message.channel.send("You need a follower before you can use this command.")
     elif len(split_msg) == 1:
         follower_card = await follower.render_follower_card(cursor, follower_info)
-        await message.channel.send("Current Status: Idle in %s" % follower_info["current_location_name"], file=discord.File(follower_card))
+        await message.channel.send("Current Status: Idle", file=discord.File(follower_card))
     elif len(split_msg) == 2 and split_msg[1] not in valid_subcommands:
         other_info = await follower.get_follower_info_by_name(cursor, split_msg[1])
         if other_info is None:
             await message.channel.send("No follower could be found with that name.")
             return
         follower_card = await follower.render_follower_card(cursor, other_info)
-        await message.channel.send("Current Status: Idle in %s" % other_info["current_location_name"], file=discord.File(follower_card))
+        await message.channel.send("Current Status: Idle", file=discord.File(follower_card))
 
 
 async def handle_daily(message, deity_info, follower_info):
@@ -258,11 +258,12 @@ async def handle_lexicon(message):
 
 
 async def handle_map(message, deity_info, follower_info):
-    valid_subcommands = ["nearby"]
+    valid_subcommands = ["nearby", "travel"]
     split_msg = message.content.split(" ", 1)
     if len(split_msg) == 1:
-        loc = await world.render_follower_location(cursor, follower_info)
-        await message.channel.send("Current Location: %s" % follower_info["current_location_name"], file=discord.File(loc))
+        loc = await world.get_follower_location(cursor, follower_info)
+        map_render = await world.render_world_location(loc['x'], loc['y'], follower_info['id'])
+        await message.channel.send("Current Location: %s" % loc["name"], file=discord.File(map_render))
     elif split_msg[1].lower() not in valid_subcommands:
         subcommand_str = ""
         for sub in valid_subcommands:
@@ -270,11 +271,13 @@ async def handle_map(message, deity_info, follower_info):
         await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
     elif split_msg[1].lower() == "nearby":
         nearby = await world.get_nearby_locations(cursor, follower_info)
-        response = "The locations closest to you are: "
+        response = "The locations closest to you are:\n"
         for location in nearby:
-            response += location["name"] + ", "
+            response += "%s (%smin away), " % (location["name"], location["distance"])
         response = response[:-2]
         await message.channel.send(response)
+    elif split_msg[1].lower() == "travel":
+        await message.channel.send("Travel is coming soon!")
 
 
 async def handle_craft(message, deity_info, follower_info):
