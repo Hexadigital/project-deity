@@ -52,7 +52,7 @@ async def get_follower_location(cursor, follower_info):
                       WHERE ft.follower_id = %s;''',
                    (follower_info['id'], ))
     travel = cursor.fetchone()
-    # Return False if no travel status
+    # Return current location if not travelling
     if travel is None:
         print("%s is not travelling..." % follower_info['name'])
         cursor.execute('''SELECT * FROM "project-deity".locations
@@ -75,7 +75,7 @@ async def get_follower_location(cursor, follower_info):
                           SET current_location_id = %s
                           WHERE id = %s;''',
                        (travel['destination'], follower_info['id']))
-        return {'name': travel['dest_name'], 'x': travel['dest_x'], 'y': travel['dest_y']}
+        return {'id': travel['destination'], 'name': travel['dest_name'], 'x': travel['dest_x'], 'y': travel['dest_y']}
     progress = time_elapsed / distance
     new_x = travel['start_x'] + math.floor((travel['dest_x'] - travel['start_x']) * progress)
     new_y = travel['start_y'] + math.floor((travel['dest_y'] - travel['start_y']) * progress)
@@ -100,6 +100,24 @@ async def get_nearby_locations(cursor, follower_info):
     if len(distances) > 5:
         distances = distances[:5]
     return distances
+
+
+# Sets a follower as travelling or returns an error if already travelling
+async def travel_to_location(cursor, follower_info, location_name):
+    loc = await get_follower_location(cursor, follower_info)
+    if 'Travelling' in loc['name']:
+        return "ERROR_ALREADY_TRAVELLING"
+    cursor.execute('''SELECT * FROM "project-deity".locations
+                      WHERE UPPER(name) = UPPER(%s);''',
+                   (location_name, ))
+    destination = cursor.fetchone()
+    if destination is None:
+        return "ERROR_BAD_LOCATION"
+    cursor.execute('''INSERT INTO "project-deity".follower_travelling
+                      (follower_id, start, destination)
+                      VALUES (%s, %s, %s);''',
+                   (follower_info['id'], loc['id'], destination['id']))
+    return destination['name']
 
 
 # Returns the number of pixels/minutes between two sets of coordinates
