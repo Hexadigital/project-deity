@@ -20,6 +20,7 @@ import math
 import os
 import psycopg2
 import psycopg2.extras
+import random
 
 import crafting
 import deity
@@ -259,16 +260,18 @@ async def handle_lexicon(message):
 
 async def handle_map(message, deity_info, follower_info):
     valid_subcommands = ["nearby", "travel"]
-    split_msg = message.content.split(" ", 1)
+    split_msg = message.content.split(" ", 2)
     if len(split_msg) == 1:
         loc = await world.get_follower_location(cursor, follower_info)
         map_render = await world.render_world_location(loc['x'], loc['y'], follower_info['id'])
         await message.channel.send("Current Location: %s" % loc["name"], file=discord.File(map_render))
+        return
     elif split_msg[1].lower() not in valid_subcommands:
         subcommand_str = ""
         for sub in valid_subcommands:
             subcommand_str += sub + ", "
         await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+        return
     elif split_msg[1].lower() == "nearby":
         nearby = await world.get_nearby_locations(cursor, follower_info)
         response = "The locations closest to you are:\n"
@@ -276,8 +279,24 @@ async def handle_map(message, deity_info, follower_info):
             response += "%s (%smin away), " % (location["name"], location["distance"])
         response = response[:-2]
         await message.channel.send(response)
+        return
     elif split_msg[1].lower() == "travel":
-        await message.channel.send("Travel is coming soon!")
+        if len(split_msg) == 2:
+            await message.channel.send("You need to specify the place to travel to, such as '.map travel Raerratt'.")
+            return
+        travel_response = await world.travel_to_location(cursor, follower_info, split_msg[2])
+        if travel_response == "ERROR_ALREADY_TRAVELLING":
+            await message.channel.send("%s is already travelling!" % follower_info['name'])
+            return
+        if travel_response == "ERROR_BAD_LOCATION":
+            await message.channel.send("That is not a valid location!")
+            return
+        random_messages = ["%s feels an urge to visit %s!", "Guided by something divine, %s embarks towards %s!",
+                           "%s decides to travel towards %s!", "%s! It is time to head to %s!",
+                           "A new journey starts for %s, beginning with %s!", "%s packs up for %s!",
+                           "%s is heading towards %s for a change of scenery!", "%s has decided to visit %s!",
+                           "%s is taking a trip to %s!", "%s... why are you going to %s?"]
+        await message.channel.send(random.choice(random_messages) % (follower_info['name'], travel_response))
 
 
 async def handle_craft(message, deity_info, follower_info):
