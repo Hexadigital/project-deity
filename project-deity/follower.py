@@ -12,39 +12,34 @@
 # The above copyright notice and this permission notice shall be
 # included in all copies or substantial portions of the Software.
 
+import skill
 from PIL import Image, ImageDraw
 from datetime import datetime
 
 
 async def get_follower_info(cursor, follower_id):
-    cursor.execute('''SELECT f.*, fc.class_name, l.name as current_location_name
+    cursor.execute('''SELECT f.*, fc.class_name
                    FROM "project-deity".followers f
                    INNER JOIN "project-deity".follower_classes fc
                    ON f.class_id = fc.id
-                   LEFT JOIN "project-deity".locations l
-                   ON f.current_location_id = l.id
                    WHERE f.id = %s;''', (follower_id, ))
     return cursor.fetchone()
 
 
 async def get_follower_info_by_deity(cursor, deity_id):
-    cursor.execute('''SELECT f.*, fc.class_name, l.name as current_location_name
+    cursor.execute('''SELECT f.*, fc.class_name
                    FROM "project-deity".followers f
                    INNER JOIN "project-deity".follower_classes fc
                    ON f.class_id = fc.id
-                   LEFT JOIN "project-deity".locations l
-                   ON f.current_location_id = l.id
                    WHERE deity_id = %s;''', (deity_id, ))
     return cursor.fetchone()
 
 
 async def get_follower_info_by_name(cursor, name):
-    cursor.execute('''SELECT f.*, fc.class_name, l.name as current_location_name
+    cursor.execute('''SELECT f.*, fc.class_name
                    FROM "project-deity".followers f
                    INNER JOIN "project-deity".follower_classes fc
                    ON f.class_id = fc.id
-                   LEFT JOIN "project-deity".locations l
-                   ON f.current_location_id = l.id
                    WHERE f.name = %s;''', (name, ))
     return cursor.fetchone()
 
@@ -290,6 +285,26 @@ async def render_follower_card(cursor, follower_info, double_size=False):
             second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1] + stat_down, starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6 + stat_down))
         stat_down += 8
 
+    # Apply skills
+    skill_levels = await skill.get_skills_info(cursor, follower_info)
+    # Apply woodcutting
+    starting_coords = (161, 56)
+    level = str(skill_levels['Woodcutting']['level'])
+    while len(level) < 3:
+        level = "0" + level
+    for i in range(0, 3):
+        num = Image.open("./images/font1/%s.png" % level[i])
+        second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1], starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6))
+
+    # Apply mining
+    starting_coords = (209, 56)
+    level = str(skill_levels['Mining']['level'])
+    while len(level) < 3:
+        level = "0" + level
+    for i in range(0, 3):
+        num = Image.open("./images/font1/%s.png" % level[i])
+        second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1], starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6))
+
     # Apply status points
     stat_points = str(follower_info["stat_points"])
     starting_coords = (121, 110)
@@ -339,6 +354,17 @@ async def render_follower_card(cursor, follower_info, double_size=False):
         draw.rectangle((58, 84, 61, 87), fill='#ffcc00')
     if delta.days <= 2:
         draw.rectangle((50, 84, 53, 87), fill='#ffcc00')
+
+    # Draw realm emblem
+    cursor.execute('''SELECT dd.name FROM "project-deity".followers f
+                      LEFT JOIN "project-deity".deities d ON f.deity_id = d.id
+                      LEFT JOIN "project-deity".deity_domains dd ON d.domain = dd.id
+                      WHERE f.id = %s;''',
+                   (follower_info['id'], ))
+    emblem = cursor.fetchone()
+    if emblem["name"] is not None:
+        symbol = Image.open("./images/realm_symbols/%s.png" % emblem["name"])
+        second_layer.paste(symbol, (86, 67, 122, 103))
 
     # Output to file
     final = Image.alpha_composite(backdrop, second_layer)
