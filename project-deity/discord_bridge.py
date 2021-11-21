@@ -31,6 +31,8 @@ import inventory
 import item
 import lexicon
 import material
+import quest
+import shop
 import world
 
 client = discord.Client()
@@ -276,7 +278,14 @@ async def handle_map(message, deity_info, follower_info):
         nearby = await world.get_nearby_locations(cursor, follower_info)
         response = "The locations closest to you are:\n"
         for location in nearby:
-            response += "%s (%smin away), " % (location["name"], location["distance"])
+            hours, minutes = divmod(location["distance"], 60)
+            if hours > 0:
+                if minutes == 0:
+                    response += "%s (%sh away), " % (location["name"], hours)
+                else:
+                    response += "%s (%sh%sm away), " % (location["name"], hours, minutes)
+            else:
+                response += "%s (%smin away), " % (location["name"], location["distance"])
         response = response[:-2]
         await message.channel.send(response)
         return
@@ -297,6 +306,49 @@ async def handle_map(message, deity_info, follower_info):
                            "%s is heading towards %s for a change of scenery!", "%s has decided to visit %s!",
                            "%s is taking a trip to %s!", "%s... why are you going to %s?"]
         await message.channel.send(random.choice(random_messages) % (follower_info['name'], travel_response))
+
+
+async def handle_quest(message, deity_info, follower_info):
+    valid_subcommands = ["abandon", "redeem", "info", "start"]
+    split_msg = message.content.split(" ", 2)
+    if len(split_msg) == 1:
+        quest_list = await quest.get_follower_quests(cursor, follower_info)
+        response = "You have the following quests:\n"
+        i = 1
+        for q in quest_list:
+            response += "%s. %s (%s)\n" % (i, q['name'], q['quest_status'])
+            i += 1
+        await message.channel.send(response)
+        return
+    elif split_msg[1].lower() not in valid_subcommands:
+        subcommand_str = ""
+        for sub in valid_subcommands:
+            subcommand_str += sub + ", "
+        await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
+        return
+    elif split_msg[1].lower() == "abandon":
+        await message.channel.send("Abandoning quests is currently unsupported.")
+        return
+    elif split_msg[1].lower() == "info":
+        if len(split_msg) == 2 or not split_msg[2].isnumeric():
+            await message.channel.send("You need to specify the quest number to look at.")
+            return
+        quest_list = await quest.get_follower_quests(cursor, follower_info)
+        if int(split_msg[2]) < 1 or int(split_msg[2]) > len(quest_list):
+            await message.channel.send("You do not have a quest in that slot!")
+            return
+        slot = int(split_msg[2]) - 1
+        q = quest_list[slot]
+        required = q['quest_data']['Amount']
+        response = "**%s**\nQuest Type: %s\nProgress: %s/%s" % (q['name'], q['quest_type'], q['quest_progress'], required)
+        await message.channel.send(response)
+        return
+    elif split_msg[1].lower() == "redeem":
+        await message.channel.send("Redeeming quests is currently unsupported.")
+        return
+    elif split_msg[1].lower() == "start":
+        await message.channel.send("Starting quests is currently unsupported.")
+        return
 
 
 async def handle_craft(message, deity_info, follower_info):
@@ -404,7 +456,7 @@ async def handle_craft(message, deity_info, follower_info):
 
 
 async def handle_inventory(message, deity_info, follower_info):
-    valid_subcommands = ["equip", "info", "open", "use"]
+    valid_subcommands = ["equip", "info", "open", "scrap", "use"]
     if follower_info is None:
         await message.channel.send("You need a follower before you can use this command.")
         return
@@ -421,6 +473,8 @@ async def handle_inventory(message, deity_info, follower_info):
             subcommand_str += sub + ", "
         await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
         return
+    elif split_msg[1].lower() == "scrap":
+        await message.channel.send("Scrapping items is not supported at this time.")
     elif split_msg[1].lower() == "equip":
         if not len(split_msg) == 3:
             await message.channel.send("You need to specify the item to equip, like so: '.inventory equip SLOT'\nFor example, to equip the first item in your inventory, you would use '.inventory equip 1'")
@@ -451,18 +505,31 @@ async def handle_inventory(message, deity_info, follower_info):
             await message.channel.send("That inventory slot is empty!")
             return
         # Figure out what item to look up
-        item_instance_id = await inventory.get_item_in_slot(cursor, follower_info["id"], requested_slot)
-        if item_instance_id is None:
+        item_instance = await inventory.get_item_in_slot(cursor, follower_info["id"], requested_slot)
+        if item_instance is None:
             await message.channel.send("That inventory slot is empty!")
             return
         # Get the item's information
-        item_info = await item.get_item(cursor, item_instance_id["item_id"])
+        item_info = await item.get_item(cursor, item_instance["item_id"])
         if item_info["class_type"] in ["Weapon", "Accessory", "Helmet", "Ring", "Armor", "Shield", "Gloves", "Legs", "Boots"]:
             await message.channel.send("This item cannot be used. Maybe you meant to equip it?")
         elif item_info["class_type"] in ["Container"]:
             await message.channel.send("This item cannot be used. Maybe you meant to open it?")
+        elif item_info["class_type"] == "Quest Scroll":
+            print(str(item_info))
+            quest_id = json.loads(item_info['json_attributes'])["Quest"]
+            quest_response = await quest.add_follower_quest(cursor, follower_info, quest_id)
+            if quest_response == "ERROR_ALREADY_HAVE_QUEST":
+                await message.channel.send("You already have this quest!")
+                return
+            if quest_response == "ERROR_TOO_MANY_QUESTS":
+                await message.channel.send("You already have three quests!")
+                return
+            await inventory.delete_item(cursor, follower_info["id"], requested_slot)
+            await item.delete_item(cursor, item_instance["item_id"])
+            await message.channel.send("[%s] has been added to your quest list!" % quest_response)
         else:
-            await message.channel.send("Using items is not supported at this time.")
+            await message.channel.send("This item cannot be used.")
     elif split_msg[1].lower() == "info":
         if not len(split_msg) == 3:
             await message.channel.send("You need to specify the item to look at, like so: '.inventory info SLOT'\nFor example, to view the first item in your inventory, you would use '.inventory info 1'")
@@ -483,7 +550,7 @@ async def handle_inventory(message, deity_info, follower_info):
         return
     elif split_msg[1].lower() == "open":
         if not len(split_msg) == 3:
-            await message.channel.send("You need to specify the item to open, like so: '.inventory open ROW,COLUMN'\nFor example, to open the first item in your inventory, you would use '.inventory open 1,1'")
+            await message.channel.send("You need to specify the item to open, like so: '.inventory open SLOT'\nFor example, to open the first item in your inventory, you would use '.inventory open 1'")
             return
         requested_slot = split_msg[2]
         # Ensure row/column are valid
@@ -532,7 +599,7 @@ async def handle_inventory(message, deity_info, follower_info):
 
 
 async def handle_material(message, deity_info, follower_info):
-    valid_subcommands = ["categories", "list"]
+    valid_subcommands = ["categories", "crate", "list"]
     split_msg = message.content.split(" ", 2)
     if len(split_msg) == 1:
         subcommand_str = ""
@@ -569,6 +636,65 @@ async def handle_material(message, deity_info, follower_info):
         for material_row in material_list:
             material_string += "%s x%s\n" % (material_row["name"], material_row["quantity"])
         await message.channel.send(material_string + "\nPage " + str(page) + " of " + str(total_pages) + "```")
+    elif split_msg[1].lower() == "crate":
+        await message.channel.send("Crating materials is currently unsupported.")
+
+
+async def handle_shop(message, deity_info, follower_info):
+    valid_subcommands = ["buy", "info", "list"]
+    split_msg = message.content.split(" ", 2)
+    loc = await world.get_follower_location(cursor, follower_info)
+    if "Travelling" in loc['name']:
+        await message.channel.send("Your follower cannot shop while travelling!")
+        return
+    shop_info = await shop.get_shop_in_location(cursor, loc['id'])
+    if len(shop_info) == 0:
+        await message.channel.send("There is no shop in %s." % loc['name'])
+        return
+    if len(split_msg) == 1 or split_msg[1] == "list":
+        i = 1
+        response = "For sale in %s:\n```" % loc['name']
+        for shop_item in shop_info:
+            response += "%s. %s (%sg)\n" % (i, shop_item['name'], shop_item['price'])
+            i += 1
+        await message.channel.send(response + "```")
+        return
+    elif split_msg[1] == "info":
+        if len(split_msg) == 2 or not split_msg[2].isnumeric():
+            await message.channel.send("You need to specify the item to look at, like so: '.shop info 1'")
+            return
+        slot = int(split_msg[2])
+        if slot <= 0 or slot > len(shop_info):
+            await message.channel.send("That item does not exist.")
+            return
+        slot -= 1
+        response = await item.get_master_text_description(cursor, shop_info[slot]['item_id'])
+        await message.channel.send(response)
+    elif split_msg[1] == "buy":
+        if len(split_msg) == 2 or not split_msg[2].isnumeric():
+            await message.channel.send("You need to specify the item to buy, like so: '.shop buy 1'")
+            return
+        slot = int(split_msg[2])
+        if slot <= 0 or slot > len(shop_info):
+            await message.channel.send("That item does not exist.")
+            return
+        slot -= 1
+        if shop_info[slot]['price'] > follower_info['monies']:
+            await message.channel.send("You do not have enough gold to buy a %s!" % shop_info[slot]['name'])
+            return
+        inventory_slot = await inventory.find_free_slot(cursor, follower_info['id'])
+        if inventory_slot is None:
+            await message.channel.send("You do not have enough inventory space to buy anything.")
+            return
+        instance_id = await item.create_item_instance(cursor, shop_info[slot]['item_id'])
+        await inventory.add_item(cursor, follower_info["id"], instance_id)
+        await follower.add_monies(cursor, follower_info["id"], 0 - shop_info[slot]['price'])
+        await message.channel.send("You bought one %s!" % shop_info[slot]['name'])
+    elif split_msg[1] not in valid_subcommands:
+        subcommand_str = ""
+        for sub in valid_subcommands:
+            subcommand_str += sub + ", "
+        await message.channel.send("You can use the following subcommands: %s." % subcommand_str[:-2])
 
 
 async def handle_equipment(message, deity_info, follower_info):
@@ -625,33 +751,37 @@ async def handle_message_from_deity(message, deity_info):
     body = message.content.lower() + " "
     follower_info = await follower.get_follower_info_by_deity(cursor, deity_info["id"])
     if body.startswith(".h ") or body.startswith(".help "):
-        await message.channel.send("Welcome to Project Deity! You can view the commands here:\n<https://github.com/Frostflake/project-deity/wiki/Discord-Commands>")
+        await message.channel.send("Welcome to Project Deity! You can view the commands here:\n<https://github.com/Frostflake/project-deity/wiki/Discord-Commands>\nSome art designed by Whitecat, and Freepik")
     elif body.startswith(".r ") or body.startswith(".register "):
         await message.channel.send("You are already registered!")
     elif body.startswith(".f ") or body.startswith(".follower "):
         await handle_follower(message, deity_info, follower_info)
     elif body.startswith(".d ") or body.startswith(".daily "):
         await handle_daily(message, deity_info, follower_info)
+    elif body.startswith(".shop "):
+        await handle_shop(message, deity_info, follower_info)
     elif body.startswith(".s ") or body.startswith(".stats "):
         await handle_stats(message, deity_info, follower_info)
     elif body.startswith(".l ") or body.startswith(".lexicon "):
         await handle_lexicon(message)
-    elif body.startswith(".i ") or body.startswith(".inventory "):
+    elif body.startswith(".i ") or body.startswith(".inv ") or body.startswith(".inventory "):
         await handle_inventory(message, deity_info, follower_info)
     elif body.startswith(".c ") or body.startswith(".craft "):
         await handle_craft(message, deity_info, follower_info)
-    elif body.startswith(".m ") or body.startswith(".mat "):
-        await handle_material(message, deity_info, follower_info)
     elif body.startswith(".map "):
         await handle_map(message, deity_info, follower_info)
+    elif body.startswith(".m ") or body.startswith(".mat "):
+        await handle_material(message, deity_info, follower_info)
     elif body.startswith(".e ") or body.startswith(".equip "):
         await handle_equipment(message, deity_info, follower_info)
+    elif body.startswith(".q ") or body.startswith(".quest "):
+        await handle_quest(message, deity_info, follower_info)
 
 
 async def handle_message_from_nondeity(message):
     body = message.content.lower() + " "
     if body.startswith(".h ") or body.startswith(".help "):
-        await message.channel.send("Welcome to Project Deity! You can view the commands here:\n<https://github.com/Frostflake/project-deity/wiki/Discord-Commands>")
+        await message.channel.send("Welcome to Project Deity! You can view the commands here:\n<https://github.com/Frostflake/project-deity/wiki/Discord-Commands>\nSome art designed by Whitecat, and Freepik")
     elif body.startswith(".r ") or body.startswith(".register "):
         await handle_registration(message)
     elif body.startswith(".l ") or body.startswith(".lexicon "):
