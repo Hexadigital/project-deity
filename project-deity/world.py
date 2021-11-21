@@ -85,12 +85,7 @@ async def get_follower_location(cursor, follower_info):
 # Returns the five closest locations to the follower
 async def get_nearby_locations(cursor, follower_info):
     loc = await get_follower_location(cursor, follower_info)
-    if 'Travelling' in loc['name']:
-        cursor.execute('''SELECT * FROM "project-deity".locations''')
-    else:
-        cursor.execute('''SELECT * FROM "project-deity".locations
-                          WHERE id != %s;''',
-                       (follower_info['current_location_id'], ))
+    cursor.execute('''SELECT * FROM "project-deity".locations''')
     locations = cursor.fetchall()
     distances = []
     for location in locations:

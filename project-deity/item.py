@@ -56,17 +56,12 @@ async def create_item_instance(cursor, item_id, att_dict={}, modifier_material=N
         # Calculate modifier effects
         modifier_dict = json.loads(modifier_material["modifier_json"])
         modifier_str = modifier_dict[master["class_type"]]["Modifier"]
-        amount_sign = modifier_dict[master["class_type"]]["Min Amount"][0]
-        if "%" in modifier_dict[master["class_type"]]["Min Amount"]:
-            percentage = "%"
-        else:
-            percentage = ""
-        min_amount = int(modifier_dict[master["class_type"]]["Min Amount"][1:].replace("%", ""))
-        max_amount = int(modifier_dict[master["class_type"]]["Max Amount"][1:].replace("%", ""))
+        min_amount = int(modifier_dict[master["class_type"]]["Min Amount"])
+        max_amount = int(modifier_dict[master["class_type"]]["Max Amount"])
         rand_amount = random.randint(min_amount, max_amount)
         json_dict["Modifier"] = {
             "Material": modifier_material["name"],
-            "Amount": amount_sign + str(rand_amount) + percentage,
+            "Amount": str(rand_amount),
             "Effects": modifier_dict[master["class_type"]]["Effects"]
         }
     json_str = json.dumps(json_dict, sort_keys=True, indent=4)
@@ -103,11 +98,11 @@ async def get_text_description(cursor, item_instance):
     else:
         description = "Name: %s\n" % master_item["name"]
     description += "Type: %s\n\n" % master_item["class_type"]
-    description += master_item["description"] + "\n\n"
+    description += master_item["description"] + "\n"
     if item_instance["json_attributes"] is not None:
         json_dict = json.loads(item_instance["json_attributes"])
         if "Base" in json_dict.keys():
-            description += "Base Stats: "
+            description += "\nBase Stats: "
             for base_stat in json_dict["Base"].keys():
                 if int(json_dict["Base"][base_stat]) > 0:
                     description += "+"
@@ -126,7 +121,48 @@ async def get_text_description(cursor, item_instance):
             description += " " + json_dict["Modifier"]["Effects"].replace("%", "")
         if "Crafted By" in json_dict.keys():
             deity_dict = await deity.get_deity_by_id(cursor, json_dict["Crafted By"])
-            description += "\nCrafted by %s on %s." % (deity_dict["name"], json_dict["Crafted On"])
+            description += "\nCrafted by %s" % deity_dict["name"]
+            if "Crafted On" in json_dict.keys():
+                description += " on %s" % json_dict["Crafted On"]
+            description += "."
+    return description.strip()
+
+
+# Returns information about an item as a string
+async def get_master_text_description(cursor, item_id):
+    master_item = await get_master_item(cursor, item_id)
+    if master_item["modifier"] is not None:
+        description = "Name: %s %s\n" % (master_item["modifier"], master_item["name"])
+    else:
+        description = "Name: %s\n" % master_item["name"]
+    description += "Type: %s\n\n" % master_item["class_type"]
+    description += master_item["description"] + "\n"
+    if master_item["json_attributes"] is not None:
+        json_dict = json.loads(master_item["json_attributes"])
+        if "Base" in json_dict.keys():
+            description += "\nBase Stats: "
+            for base_stat in json_dict["Base"].keys():
+                if int(json_dict["Base"][base_stat]) > 0:
+                    description += "+"
+                description += json_dict["Base"][base_stat]
+                if "%" in base_stat:
+                    description += "%"
+                description += " " + base_stat.replace("%", "") + ", "
+            description = description[:-2]
+        if "Modifier" in json_dict.keys():
+            description += "\n" + json_dict["Modifier"]["Material"] + ": "
+            if int(json_dict["Modifier"]["Amount"]) > 0:
+                description += "+"
+            description += json_dict["Modifier"]["Amount"]
+            if "%" in json_dict["Modifier"]["Effects"]:
+                description += "%"
+            description += " " + json_dict["Modifier"]["Effects"].replace("%", "")
+        if "Crafted By" in json_dict.keys():
+            deity_dict = await deity.get_deity_by_id(cursor, json_dict["Crafted By"])
+            description += "\nCrafted by %s" % deity_dict["name"]
+            if "Crafted On" in json_dict.keys():
+                description += " on %s" % json_dict["Crafted On"]
+            description += "."
     return description.strip()
 
 
