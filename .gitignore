@@ -1,6 +1,4 @@
 project-deity/__pycache__
 project-deity/config.json
 project-deity/discord.token
-project-deity/images/items/*.png
-project-deity/images/slots/*.png
-project-deity/images/renders/inventories/*.png
+project-deity/images/*
