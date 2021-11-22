@@ -37,6 +37,7 @@ class AdminPanel(QtWidgets.QMainWindow):
         self.cursor = self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
         self.current_selections = {}
         self.load_followers()
+        self.load_locations()
         self.show()
 
     def load_followers(self):
@@ -73,6 +74,27 @@ class AdminPanel(QtWidgets.QMainWindow):
         self.followerPoints.setText(str(r['stat_points']))
         self.followerReputation.setText(str(r['reputation']))
         self.followerDevotion.setText(str(r['devotion']))
+
+    def load_locations(self):
+        self.cursor.execute('''SELECT id, name FROM "project-deity".locations ORDER BY id''')
+        locations = self.cursor.fetchall()
+        self.locationTable.setRowCount(len(locations))
+        for i in range(0, len(locations)):
+            self.locationTable.setItem(i, 0, QtWidgets.QTableWidgetItem(str(locations[i]['id'])))
+            self.locationTable.setItem(i, 1, QtWidgets.QTableWidgetItem(str(locations[i]['name'])))
+
+    @pyqtSlot()
+    def on_locationTable_itemSelectionChanged(self):
+        selection = [x.text() for x in self.locationTable.selectedItems()]
+        self.cursor.execute('''SELECT * FROM "project-deity".locations
+                               WHERE id = %s''', (int(selection[0]), ))
+        r = self.cursor.fetchone()
+        self.current_selections["Location"] = r
+        self.locationName.setText(r['name'])
+        self.locationType.setText(r['type'])
+        self.locationX.setText(str(r['x']))
+        self.locationY.setText(str(r['y']))
+        self.locationFloors.setText(str(r['floors']))
 
 
 app = QtWidgets.QApplication(sys.argv)
