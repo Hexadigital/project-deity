@@ -563,43 +563,53 @@ async def handle_inventory(message, deity_info, follower_info):
             await message.channel.send("Despite your best efforts, you are unable to open something that doesn't exist.")
             return
         item_info = await item.get_item(cursor, item_instance["item_id"])
-        reward_id, quantity, reward_type, reward_name = await item.get_container_reward(cursor, item_info["master_item_id"])
-        if reward_id is None:
-            if item_info["modifier"] is None:
-                await message.channel.send("You try with all of your might, but are unable to open the %s." % item_info["name"])
-                return
-            else:
-                await message.channel.send("You try with all of your might, but are unable to open the %s %s." % (item_info["modifier"], item_info["name"]))
+        if item_instance['class_type'] == 'Material Pack':
+            attributes = json.loads(item_instance['json_attributes'])
+            await material.add_deity_material(cursor, deity_info["id"], attributes['Material'], attributes['Amount'])
+            # Delete inventory item
+            await inventory.delete_item(cursor, follower_info["id"], requested_slot)
+            # Delete item instance
+            await item.delete_item(cursor, item_instance["item_id"])
+            await message.channel.send("You've opened the %s!" % item_instance['name'])
             return
-        pluralism = ""
-        if quantity > 1:
-            pluralism = "s"
-        # Is this gold?
-        if reward_id == 0:
-            await follower.add_monies(cursor, follower_info["id"], quantity)
-            if item_info["modifier"] is None:
-                await message.channel.send("You open the %s and find %s Gold!" % (item_info["name"], quantity))
-            else:
-                await message.channel.send("You open the %s %s and find %s Gold!" % (item_info["modifier"], item_info["name"], quantity))
-        # Is this a material?
-        elif reward_type == "Material":
-            await material.add_deity_material(cursor, deity_info["id"], reward_id, quantity)
-            if item_info["modifier"] is None:
-                await message.channel.send("You open the %s and find %sx %s%s!" % (item_info["name"], quantity, reward_name, pluralism))
-            else:
-                await message.channel.send("You open the %s %s and find %sx %s%s!" % (item_info["modifier"], item_info["name"], quantity, reward_name, pluralism))
-        # TODO: Is this an item?
         else:
-            pass
-        # Delete inventory item
-        await inventory.delete_item(cursor, follower_info["id"], requested_slot)
-        # Delete item instance
-        await item.delete_item(cursor, item_instance["item_id"])
-        return
+            reward_id, quantity, reward_type, reward_name = await item.get_container_reward(cursor, item_info["master_item_id"])
+            if reward_id is None:
+                if item_info["modifier"] is None:
+                    await message.channel.send("You try with all of your might, but are unable to open the %s." % item_info["name"])
+                    return
+                else:
+                    await message.channel.send("You try with all of your might, but are unable to open the %s %s." % (item_info["modifier"], item_info["name"]))
+                return
+            pluralism = ""
+            if quantity > 1:
+                pluralism = "s"
+            # Is this gold?
+            if reward_id == 0:
+                await follower.add_monies(cursor, follower_info["id"], quantity)
+                if item_info["modifier"] is None:
+                    await message.channel.send("You open the %s and find %s Gold!" % (item_info["name"], quantity))
+                else:
+                    await message.channel.send("You open the %s %s and find %s Gold!" % (item_info["modifier"], item_info["name"], quantity))
+            # Is this a material?
+            elif reward_type == "Material":
+                await material.add_deity_material(cursor, deity_info["id"], reward_id, quantity)
+                if item_info["modifier"] is None:
+                    await message.channel.send("You open the %s and find %sx %s%s!" % (item_info["name"], quantity, reward_name, pluralism))
+                else:
+                    await message.channel.send("You open the %s %s and find %sx %s%s!" % (item_info["modifier"], item_info["name"], quantity, reward_name, pluralism))
+            # TODO: Is this an item?
+            else:
+                pass
+            # Delete inventory item
+            await inventory.delete_item(cursor, follower_info["id"], requested_slot)
+            # Delete item instance
+            await item.delete_item(cursor, item_instance["item_id"])
+            return
 
 
 async def handle_material(message, deity_info, follower_info):
-    valid_subcommands = ["categories", "crate", "list"]
+    valid_subcommands = ["categories", "list", "pack"]
     split_msg = message.content.split(" ", 2)
     if len(split_msg) == 1:
         subcommand_str = ""
@@ -636,8 +646,8 @@ async def handle_material(message, deity_info, follower_info):
         for material_row in material_list:
             material_string += "%s x%s\n" % (material_row["name"], material_row["quantity"])
         await message.channel.send(material_string + "\nPage " + str(page) + " of " + str(total_pages) + "```")
-    elif split_msg[1].lower() == "crate":
-        await message.channel.send("Crating materials is currently unsupported.")
+    elif split_msg[1].lower() == "pack":
+        await message.channel.send("Packing materials is currently unsupported.")
 
 
 async def handle_shop(message, deity_info, follower_info):

@@ -305,6 +305,15 @@ async def render_follower_card(cursor, follower_info, double_size=False):
         num = Image.open("./images/font1/%s.png" % level[i])
         second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1], starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6))
 
+    # Apply fishing
+    starting_coords = (161, 66)
+    level = str(skill_levels['Fishing']['level'])
+    while len(level) < 3:
+        level = "0" + level
+    for i in range(0, 3):
+        num = Image.open("./images/font1/%s.png" % level[i])
+        second_layer.paste(num, (starting_coords[0] + (8 * i), starting_coords[1], starting_coords[0] + 6 + (8 * i), starting_coords[1] + 6))
+
     # Apply status points
     stat_points = str(follower_info["stat_points"])
     starting_coords = (121, 110)

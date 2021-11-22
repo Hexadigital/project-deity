@@ -101,24 +101,28 @@ async def get_text_description(cursor, item_instance):
     description += master_item["description"] + "\n"
     if item_instance["json_attributes"] is not None:
         json_dict = json.loads(item_instance["json_attributes"])
-        if "Base" in json_dict.keys():
-            description += "\nBase Stats: "
-            for base_stat in json_dict["Base"].keys():
-                if int(json_dict["Base"][base_stat]) > 0:
+        if master_item["class_type"] in ["Accessory", "Helmet", "Ring", "Weapon", "Armor", "Shield", "Gloves", "Legs", "Boots"]:
+            if "Base" in json_dict.keys():
+                description += "\nBase Stats: "
+                for base_stat in json_dict["Base"].keys():
+                    if int(json_dict["Base"][base_stat]) > 0:
+                        description += "+"
+                    description += json_dict["Base"][base_stat]
+                    if "%" in base_stat:
+                        description += "%"
+                    description += " " + base_stat.replace("%", "") + ", "
+                description = description[:-2]
+            if "Modifier" in json_dict.keys():
+                description += "\n" + json_dict["Modifier"]["Material"] + ": "
+                if int(json_dict["Modifier"]["Amount"]) > 0:
                     description += "+"
-                description += json_dict["Base"][base_stat]
-                if "%" in base_stat:
+                description += json_dict["Modifier"]["Amount"]
+                if "%" in json_dict["Modifier"]["Effects"]:
                     description += "%"
-                description += " " + base_stat.replace("%", "") + ", "
-            description = description[:-2]
-        if "Modifier" in json_dict.keys():
-            description += "\n" + json_dict["Modifier"]["Material"] + ": "
-            if int(json_dict["Modifier"]["Amount"]) > 0:
-                description += "+"
-            description += json_dict["Modifier"]["Amount"]
-            if "%" in json_dict["Modifier"]["Effects"]:
-                description += "%"
-            description += " " + json_dict["Modifier"]["Effects"].replace("%", "")
+                description += " " + json_dict["Modifier"]["Effects"].replace("%", "")
+        elif master_item["class_type"] == 'Food':
+            if "HP" in json_dict.keys():
+                description += '\nHeals %s HP.' % json_dict['HP']
         if "Crafted By" in json_dict.keys():
             deity_dict = await deity.get_deity_by_id(cursor, json_dict["Crafted By"])
             description += "\nCrafted by %s" % deity_dict["name"]
@@ -139,24 +143,28 @@ async def get_master_text_description(cursor, item_id):
     description += master_item["description"] + "\n"
     if master_item["json_attributes"] is not None:
         json_dict = json.loads(master_item["json_attributes"])
-        if "Base" in json_dict.keys():
-            description += "\nBase Stats: "
-            for base_stat in json_dict["Base"].keys():
-                if int(json_dict["Base"][base_stat]) > 0:
+        if master_item["class_type"] in ["Accessory", "Helmet", "Ring", "Weapon", "Armor", "Shield", "Gloves", "Legs", "Boots"]:
+            if "Base" in json_dict.keys():
+                description += "\nBase Stats: "
+                for base_stat in json_dict["Base"].keys():
+                    if int(json_dict["Base"][base_stat]) > 0:
+                        description += "+"
+                    description += json_dict["Base"][base_stat]
+                    if "%" in base_stat:
+                        description += "%"
+                    description += " " + base_stat.replace("%", "") + ", "
+                description = description[:-2]
+            if "Modifier" in json_dict.keys():
+                description += "\n" + json_dict["Modifier"]["Material"] + ": "
+                if int(json_dict["Modifier"]["Amount"]) > 0:
                     description += "+"
-                description += json_dict["Base"][base_stat]
-                if "%" in base_stat:
+                description += json_dict["Modifier"]["Amount"]
+                if "%" in json_dict["Modifier"]["Effects"]:
                     description += "%"
-                description += " " + base_stat.replace("%", "") + ", "
-            description = description[:-2]
-        if "Modifier" in json_dict.keys():
-            description += "\n" + json_dict["Modifier"]["Material"] + ": "
-            if int(json_dict["Modifier"]["Amount"]) > 0:
-                description += "+"
-            description += json_dict["Modifier"]["Amount"]
-            if "%" in json_dict["Modifier"]["Effects"]:
-                description += "%"
-            description += " " + json_dict["Modifier"]["Effects"].replace("%", "")
+                description += " " + json_dict["Modifier"]["Effects"].replace("%", "")
+        elif master_item["class_type"] == 'Food':
+            if "HP" in json_dict.keys():
+                description += '\nHeals %s HP.' % json_dict['HP']
         if "Crafted By" in json_dict.keys():
             deity_dict = await deity.get_deity_by_id(cursor, json_dict["Crafted By"])
             description += "\nCrafted by %s" % deity_dict["name"]

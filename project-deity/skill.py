@@ -14,4 +14,4 @@
 
 
 async def get_skills_info(cursor, follower_info):
-    return {'Woodcutting': {'level': 1, 'exp': 0}, 'Mining': {'level': 1, 'exp': 0}}
+    return {'Woodcutting': {'level': 1, 'exp': 0}, 'Mining': {'level': 1, 'exp': 0}, 'Fishing': {'level': 1, 'exp': 0}}
